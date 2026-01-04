@@ -7,6 +7,7 @@ import enum
 class ApplicationStatus(str, enum.Enum):
     APPLIED = "applied"
     SHORTLISTED = "shortlisted"
+    ACCEPTED = "accepted"
     REJECTED = "rejected"
 
 class Application(Base):
