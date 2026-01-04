@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, type FormEvent } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { getJobs, applyForJob, getMyApplications, type Job, type Application } from '../api/jobs';
+import { Link } from 'react-router-dom';
+import { getJobs, getMyApplications, type Job, type Application } from '../api/jobs';
 import { uploadCV, updateProfile, changePassword } from '../api/users';
 import { getNotifications, markAsRead, markAllAsRead, type Notification } from '../api/notifications';
 import { LogOut, Upload, User as UserIcon, Briefcase, FileText, CheckCircle, Filter, Bell } from 'lucide-react';
@@ -135,27 +136,6 @@ const StudentPortal = () => {
             } finally {
                 setUploading(false);
             }
-        }
-    };
-
-    const handleApply = async (jobId: number) => {
-        if (!user?.cv_filename) {
-            toast.error("Please upload your CV before applying!");
-            setActiveTab('profile');
-            return;
-        }
-
-        const applyPromise = applyForJob(jobId);
-        toast.promise(applyPromise, {
-            loading: 'Submitting Application...',
-            success: 'Applied Successfully!',
-            error: (err) => err.response?.data?.detail || 'Application Failed'
-        });
-
-        try {
-            await applyPromise;
-        } catch (error) {
-            console.error(error);
         }
     };
 
@@ -361,16 +341,15 @@ const StudentPortal = () => {
                                         <span className="text-xs text-gray-400">{new Date(job.created_at).toLocaleDateString()}</span>
                                     </div>
                                     <p className="text-gray-600 text-sm mb-4 line-clamp-3 flex-1">{job.description}</p>
-                                    <button
-                                        onClick={() => handleApply(job.id)}
-                                        disabled={myApplications.some(app => app.job_id === job.id)}
-                                        className={`w-full mt-auto rounded-lg px-4 py-2 text-sm font-medium transition-colors ${myApplications.some(app => app.job_id === job.id)
-                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                    <Link
+                                        to={`/jobs/${job.id}`}
+                                        className={`w-full mt-auto text-center rounded-lg px-4 py-2 text-sm font-medium transition-colors ${myApplications.some(app => app.job_id === job.id)
+                                            ? 'bg-white border border-gray-200 text-green-600'
                                             : 'bg-indigo-600 text-white hover:bg-indigo-700'
                                             }`}
                                     >
-                                        {myApplications.some(app => app.job_id === job.id) ? 'Applied' : 'Apply Now'}
-                                    </button>
+                                        {myApplications.some(app => app.job_id === job.id) ? 'View Status' : 'View Details'}
+                                    </Link>
                                 </div>
                             ))}
                             {jobs.length === 0 && !loadingJobs && (

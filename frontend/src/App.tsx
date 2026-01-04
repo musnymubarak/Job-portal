@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import Login from './pages/Login';
+import JobDetails from './pages/JobDetails';
 import StudentPortal from './pages/StudentPortal';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -25,6 +26,12 @@ function App() {
           <Route path="/dashboard" element={
             <ProtectedRoute>
               <StudentPortal />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/jobs/:id" element={
+            <ProtectedRoute>
+              <JobDetails />
             </ProtectedRoute>
           } />
 
