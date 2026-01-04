@@ -33,9 +33,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (token) {
                 try {
                     const userData = await getMe();
+                    if (userData.role !== 'admin') {
+                        throw new Error("Unauthorized Access: Admins Only");
+                    }
                     setUser(userData);
                 } catch (e) {
-                    console.error("Failed to fetch user", e);
+                    console.error("Failed to fetch user or unauthorized", e);
                     logout();
                 } finally {
                     setLoading(false);
@@ -50,10 +53,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const login = async (username: string, password: string) => {
         try {
             const data = await loginApi(username, password);
+            // We can't verify role strictly before getMe unless login returns it, 
+            // but we check immediately after.
+            // Temporary token set to allow getMe
             setToken(data.access_token);
             localStorage.setItem('token', data.access_token);
-            const userData = await getMe();
-            setUser(userData);
+
+            try {
+                const userData = await getMe();
+                if (userData.role !== 'admin') {
+                    throw new Error("Access Denied: You must be an Admin.");
+                }
+                setUser(userData);
+            } catch (err) {
+                // Rollback if not admin
+                logout();
+                throw err;
+            }
+
         } catch (error) {
             console.error("Login failed", error);
             throw error;

@@ -101,10 +101,13 @@ def read_jobs(
     query = db.query(Job)
 
     # Visibility Rules
+    # Visibility Rules
     if current_user.role == UserRole.STUDENT:
         query = query.filter(Job.status == JobStatus.OPEN)
-    elif status: # Admin filtering
-        query = query.filter(Job.status == status)
+    elif current_user.role == UserRole.ADMIN:
+        query = query.filter(Job.admin_id == current_user.id) # Only show own jobs
+        if status:
+             query = query.filter(Job.status == status)
 
     if job_type:
         query = query.filter(Job.job_type == job_type)

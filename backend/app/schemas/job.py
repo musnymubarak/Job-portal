@@ -1,6 +1,6 @@
 from typing import Optional, List
 from datetime import datetime
-from pydantic import BaseModel, validator, Field
+from pydantic import BaseModel, validator, Field, field_validator
 
 class JobBase(BaseModel):
     title: str
@@ -13,10 +13,14 @@ class JobBase(BaseModel):
     deadline: Optional[datetime] = None
     status: Optional[str] = "Draft" # Draft, Open, Closed
     
-    responsibilities: List[str] = []
-    required_skills: List[str] = []
-    preferred_skills: List[str] = []
-    tools: List[str] = []
+    responsibilities: Optional[List[str]] = []
+    required_skills: Optional[List[str]] = []
+    preferred_skills: Optional[List[str]] = []
+    tools: Optional[List[str]] = []
+
+    @field_validator('responsibilities', 'required_skills', 'preferred_skills', 'tools', mode='before')
+    def null_to_list(cls, v):
+        return v or []
     min_qualifications: Optional[str] = None
 
 class JobCreate(JobBase):

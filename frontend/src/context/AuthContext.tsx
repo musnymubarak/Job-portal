@@ -33,9 +33,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (token) {
                 try {
                     const userData = await getMe();
+                    if (userData.role !== 'student') {
+                        throw new Error("Unauthorized Access: Students Only");
+                    }
                     setUser(userData);
                 } catch (e) {
-                    console.error("Failed to fetch user", e);
+                    console.error("Failed to fetch user or unauthorized", e);
                     logout();
                 } finally {
                     setLoading(false);
@@ -52,8 +55,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const data = await loginApi(username, password);
             setToken(data.access_token);
             localStorage.setItem('token', data.access_token);
-            const userData = await getMe();
-            setUser(userData);
+
+            try {
+                const userData = await getMe();
+                if (userData.role !== 'student') {
+                    throw new Error("Access Denied: You must be a Student.");
+                }
+                setUser(userData);
+            } catch (err) {
+                logout();
+                throw err;
+            }
         } catch (error) {
             console.error("Login failed", error);
             throw error;
