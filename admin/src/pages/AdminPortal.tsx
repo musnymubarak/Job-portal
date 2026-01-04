@@ -24,7 +24,7 @@ const AdminPortal = () => {
     });
 
     // Form State (Job)
-    const [jobData, setJobData] = useState<JobCreate>({ title: '', description: '', requirements: '' });
+    const [jobData, setJobData] = useState<JobCreate>({ title: '', description: '', requirements: '', job_type: '', department: '' });
     const [posting, setPosting] = useState(false);
 
     // Profile State
@@ -98,7 +98,7 @@ const AdminPortal = () => {
 
         try {
             await postPromise;
-            setJobData({ title: '', description: '', requirements: '' });
+            setJobData({ title: '', description: '', requirements: '', job_type: '', department: '' });
             fetchJobs(); // Refresh job list
             setActiveTab('dashboard');
         } catch (error) {
@@ -289,6 +289,37 @@ const AdminPortal = () => {
                                         value={jobData.requirements}
                                         onChange={(e) => setJobData({ ...jobData, requirements: e.target.value })}
                                     />
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Job Type</label>
+                                        <select
+                                            className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                            value={jobData.job_type}
+                                            onChange={(e) => setJobData({ ...jobData, job_type: e.target.value })}
+                                        >
+                                            <option value="">Select Type</option>
+                                            <option value="Internship">Internship</option>
+                                            <option value="Full-time">Full-time</option>
+                                            <option value="Contract">Contract</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Department</label>
+                                        <select
+                                            className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                            value={jobData.department}
+                                            onChange={(e) => setJobData({ ...jobData, department: e.target.value })}
+                                        >
+                                            <option value="">Select Department</option>
+                                            <option value="Engineering">Engineering</option>
+                                            <option value="Product">Product</option>
+                                            <option value="Design">Design</option>
+                                            <option value="Marketing">Marketing</option>
+                                            <option value="Sales">Sales</option>
+                                            <option value="HR">HR</option>
+                                        </select>
+                                    </div>
                                 </div>
                                 <div className="pt-4">
                                     <button
@@ -489,8 +520,8 @@ const AdminPortal = () => {
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full uppercase ${app.status === 'accepted' ? 'bg-green-100 text-green-800' :
-                                                                app.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                                                                    'bg-blue-100 text-blue-800'
+                                                            app.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                                                'bg-blue-100 text-blue-800'
                                                             }`}>
                                                             {app.status}
                                                         </span>

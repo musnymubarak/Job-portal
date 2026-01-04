@@ -12,6 +12,8 @@ export interface Job {
     title: string;
     description: string;
     requirements: string;
+    job_type?: string;
+    department?: string;
     created_at: string;
     admin_id: number;
 }
@@ -20,6 +22,8 @@ export interface JobCreate {
     title: string;
     description: string;
     requirements: string;
+    job_type?: string;
+    department?: string;
 }
 
 export interface Application {
