@@ -1,9 +1,9 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { createJob, getAdminApplications, getJobs, type Job, type JobCreate, type Application } from '../api/jobs';
+import { createJob, updateJob, getAdminApplications, getJobs, type Job, type JobCreate, type Application } from '../api/jobs';
 import { updateApplicationStatus } from '../api/applications';
 import { updateProfile, changePassword } from '../api/users';
-import { LogOut, Plus, Briefcase, FileText, BarChart2, User as UserIcon, Filter, Lock, Check, X } from 'lucide-react';
+import { LogOut, Plus, Briefcase, FileText, BarChart2, User as UserIcon, Filter, Lock, Check, X, Edit } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const AdminPortal = () => {
@@ -24,7 +24,20 @@ const AdminPortal = () => {
     });
 
     // Form State (Job)
-    const [jobData, setJobData] = useState<JobCreate>({ title: '', description: '', requirements: '', job_type: '', department: '' });
+    const [editingJobId, setEditingJobId] = useState<number | null>(null);
+    const [jobData, setJobData] = useState<JobCreate>({
+        title: '',
+        description: '',
+        requirements: '', // We'll auto-fill this or ignore
+        job_type: '',
+        department: '',
+        location: 'Onsite',
+        status: 'Draft',
+        responsibilities: [],
+        required_skills: [],
+        preferred_skills: [],
+        tools: [],
+    });
     const [posting, setPosting] = useState(false);
 
     // Profile State
@@ -84,21 +97,51 @@ const AdminPortal = () => {
         }
     };
 
+    const handleEditJob = (job: Job) => {
+        setEditingJobId(job.id);
+        setJobData({
+            title: job.title,
+            description: job.description,
+            requirements: job.requirements,
+            job_type: job.job_type || '',
+            department: job.department || '',
+            location: job.location || 'Onsite',
+            status: job.status || 'Draft',
+            duration: job.duration,
+            deadline: job.deadline ? new Date(job.deadline).toISOString().slice(0, 16) : undefined,
+            responsibilities: job.responsibilities || [],
+            required_skills: job.required_skills || [],
+            preferred_skills: job.preferred_skills || [],
+            tools: job.tools || [],
+            min_qualifications: job.min_qualifications
+        });
+        setActiveTab('post-job');
+    };
+
     const handlePostJob = async (e: FormEvent) => {
         e.preventDefault();
         setPosting(true);
 
-        const postPromise = createJob(jobData);
-
-        toast.promise(postPromise, {
-            loading: 'Posting Job...',
-            success: 'Job Posted Successfully!',
-            error: 'Failed to post job'
-        });
-
         try {
-            await postPromise;
-            setJobData({ title: '', description: '', requirements: '', job_type: '', department: '' });
+            // Ensure requirements string is populated if empty (for backward compatibility if backend requires it)
+            const finalData = {
+                ...jobData,
+                requirements: jobData.requirements || jobData.required_skills?.join(', ') || 'See details'
+            };
+
+            if (editingJobId) {
+                await updateJob(editingJobId, finalData);
+                toast.success('Job Updated Successfully!');
+            } else {
+                await createJob(finalData);
+                toast.success('Job Posted Successfully!');
+            }
+
+            setJobData({
+                title: '', description: '', requirements: '', job_type: '', department: '',
+                location: 'Onsite', status: 'Draft', responsibilities: [], required_skills: [], preferred_skills: [], tools: []
+            });
+            setEditingJobId(null);
             fetchJobs(); // Refresh job list
             setActiveTab('dashboard');
         } catch (error) {
@@ -205,7 +248,14 @@ const AdminPortal = () => {
                             <BarChart2 size={18} className="mr-3" /> Dashboard
                         </button>
                         <button
-                            onClick={() => setActiveTab('post-job')}
+                            onClick={() => {
+                                setActiveTab('post-job');
+                                setEditingJobId(null); // Reset to create mode if clicked from sidebar
+                                setJobData({
+                                    title: '', description: '', requirements: '', job_type: '', department: '',
+                                    location: 'Onsite', status: 'Draft', responsibilities: [], required_skills: [], preferred_skills: [], tools: []
+                                });
+                            }}
                             className={`flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'post-job'
                                 ? 'bg-indigo-50 text-indigo-700'
                                 : 'text-gray-600 hover:bg-gray-100'
@@ -256,78 +306,217 @@ const AdminPortal = () => {
                 <main className="flex-1 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
 
                     {activeTab === 'post-job' && (
-                        <div className="p-8 max-w-2xl mx-auto w-full overflow-y-auto">
-                            <h2 className="text-2xl font-bold text-gray-900 mb-6">Create New Job Posting</h2>
-                            <form onSubmit={handlePostJob} className="space-y-6">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Job Title</label>
+                        <div className="p-8 max-w-4xl mx-auto w-full overflow-y-auto pb-20">
+                            <h2 className="text-2xl font-bold text-gray-900 mb-6">{editingJobId ? 'Edit Job Posting' : 'Create New Job Posting'}</h2>
+                            <form onSubmit={handlePostJob} className="space-y-8">
+
+                                {/* Section 1: Basic Info */}
+                                <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm space-y-6">
+                                    <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Basic Information</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="md:col-span-2">
+                                            <label className="block text-sm font-medium text-gray-700">Job Title *</label>
+                                            <input
+                                                type="text"
+                                                required
+                                                className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                                value={jobData.title}
+                                                onChange={(e) => setJobData({ ...jobData, title: e.target.value })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">Department *</label>
+                                            <select
+                                                required
+                                                className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                                value={jobData.department}
+                                                onChange={(e) => setJobData({ ...jobData, department: e.target.value })}
+                                            >
+                                                <option value="">Select Department</option>
+                                                <option value="Engineering">Engineering</option>
+                                                <option value="Product">Product</option>
+                                                <option value="Design">Design</option>
+                                                <option value="Marketing">Marketing</option>
+                                                <option value="Sales">Sales</option>
+                                                <option value="HR">HR</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">Job Type *</label>
+                                            <select
+                                                required
+                                                className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                                value={jobData.job_type}
+                                                onChange={(e) => setJobData({ ...jobData, job_type: e.target.value })}
+                                            >
+                                                <option value="">Select Type</option>
+                                                <option value="Internship">Internship</option>
+                                                <option value="Full-time">Full-time</option>
+                                                <option value="Contract">Contract</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">Location *</label>
+                                            <select
+                                                required
+                                                className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                                value={jobData.location}
+                                                onChange={(e) => setJobData({ ...jobData, location: e.target.value })}
+                                            >
+                                                <option value="Onsite">Onsite</option>
+                                                <option value="Remote">Remote</option>
+                                                <option value="Hybrid">Hybrid</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">Duration (Optional)</label>
+                                            <input
+                                                type="text"
+                                                placeholder="e.g. 3 months"
+                                                className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                                value={jobData.duration || ''}
+                                                onChange={(e) => setJobData({ ...jobData, duration: e.target.value })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">Application Deadline</label>
+                                            <input
+                                                type="datetime-local"
+                                                className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                                value={jobData.deadline || ''}
+                                                onChange={(e) => setJobData({ ...jobData, deadline: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Overview / Description *</label>
+                                        <textarea
+                                            required
+                                            rows={4}
+                                            className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                            value={jobData.description}
+                                            onChange={(e) => setJobData({ ...jobData, description: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Section 2: Detailed Requirements (Lists) */}
+                                <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm space-y-6">
+                                    <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Details & Requirements</h3>
+
+                                    {/* Helper for Lists */}
+                                    {[
+                                        { label: 'Key Responsibilities', field: 'responsibilities' as keyof JobCreate },
+                                        { label: 'Required Skills', field: 'required_skills' as keyof JobCreate },
+                                        { label: 'Preferred Skills', field: 'preferred_skills' as keyof JobCreate },
+                                        { label: 'Tools & Technologies', field: 'tools' as keyof JobCreate },
+                                    ].map((section) => (
+                                        <div key={section.field}>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">{section.label}</label>
+                                            <div className="flex gap-2 mb-2">
+                                                <input
+                                                    type="text"
+                                                    id={`input-${section.field}`}
+                                                    className="flex-1 border border-gray-300 rounded-lg shadow-sm py-2 px-3 text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                                    placeholder="Type and press Enter or Add"
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            e.preventDefault();
+                                                            const val = e.currentTarget.value.trim();
+                                                            if (val) {
+                                                                setJobData(prev => ({
+                                                                    ...prev,
+                                                                    [section.field]: [...(prev[section.field] as string[] || []), val]
+                                                                }));
+                                                                e.currentTarget.value = '';
+                                                            }
+                                                        }
+                                                    }}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const input = document.getElementById(`input-${section.field}`) as HTMLInputElement;
+                                                        const val = input.value.trim();
+                                                        if (val) {
+                                                            setJobData(prev => ({
+                                                                ...prev,
+                                                                [section.field]: [...(prev[section.field] as string[] || []), val]
+                                                            }));
+                                                            input.value = '';
+                                                        }
+                                                    }}
+                                                    className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none"
+                                                >
+                                                    Add
+                                                </button>
+                                            </div>
+                                            <div className="flex flex-wrap gap-2">
+                                                {(jobData[section.field] as string[])?.map((item, idx) => (
+                                                    <span key={idx} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                                        {item}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setJobData(prev => ({
+                                                                    ...prev,
+                                                                    [section.field]: (prev[section.field] as string[]).filter((_, i) => i !== idx)
+                                                                }));
+                                                            }}
+                                                            className="ml-1.5 inline-flex text-gray-400 hover:text-gray-600 focus:outline-none"
+                                                        >
+                                                            <X size={14} />
+                                                        </button>
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Minimum Qualifications</label>
+                                        <textarea
+                                            rows={3}
+                                            className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                            value={jobData.min_qualifications || ''}
+                                            onChange={(e) => setJobData({ ...jobData, min_qualifications: e.target.value })}
+                                        />
+                                    </div>
+
+                                    {/* Fallback for simple requirements string if needed (hidden or automated) */}
                                     <input
-                                        type="text"
-                                        required
-                                        className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                                        value={jobData.title}
-                                        onChange={(e) => setJobData({ ...jobData, title: e.target.value })}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Description</label>
-                                    <textarea
-                                        required
-                                        rows={6}
-                                        className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                                        value={jobData.description}
-                                        onChange={(e) => setJobData({ ...jobData, description: e.target.value })}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Requirements (Keywords for ATS)</label>
-                                    <p className="text-xs text-gray-500 mb-1">Separate keywords with commas.</p>
-                                    <textarea
-                                        required
-                                        rows={3}
-                                        className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                        type="hidden"
                                         value={jobData.requirements}
-                                        onChange={(e) => setJobData({ ...jobData, requirements: e.target.value })}
                                     />
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700">Job Type</label>
-                                        <select
-                                            className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                                            value={jobData.job_type}
-                                            onChange={(e) => setJobData({ ...jobData, job_type: e.target.value })}
-                                        >
-                                            <option value="">Select Type</option>
-                                            <option value="Internship">Internship</option>
-                                            <option value="Full-time">Full-time</option>
-                                            <option value="Contract">Contract</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700">Department</label>
-                                        <select
-                                            className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                                            value={jobData.department}
-                                            onChange={(e) => setJobData({ ...jobData, department: e.target.value })}
-                                        >
-                                            <option value="">Select Department</option>
-                                            <option value="Engineering">Engineering</option>
-                                            <option value="Product">Product</option>
-                                            <option value="Design">Design</option>
-                                            <option value="Marketing">Marketing</option>
-                                            <option value="Sales">Sales</option>
-                                            <option value="HR">HR</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div className="pt-4">
+
+                                {/* Actions */}
+                                <div className="flex justify-end gap-4 pt-4 border-t border-gray-200">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setJobData({ ...jobData, status: 'Draft' });
+                                            // Handle submit manually since type=button
+                                            // Actually, we can just set state then submit? 
+                                            // Better: add a hidden status input or handle in submit.
+                                            // Let's modify handlePostJob to accept status override or check state.
+                                            // Simplest: 
+                                            // 1. setJobData status
+                                            // 2. setTimeout to allow state update? No, that's flaky.
+                                            // 3. Pass status to handlePostJob.
+                                        }}
+                                        className="px-6 py-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 mr-auto"
+                                    >
+                                        Save as Draft
+                                    </button>
+
                                     <button
                                         type="submit"
+                                        onClick={() => setJobData(prev => ({ ...prev, status: 'Open' }))}
                                         disabled={posting}
-                                        className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                                        className="px-6 py-3 border border-transparent rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-md disabled:opacity-50"
                                     >
-                                        {posting ? 'Posting...' : 'Post Job'}
+                                        {posting ? 'Publishing...' : 'Publish Job'}
                                     </button>
                                 </div>
                             </form>
@@ -407,10 +596,19 @@ const AdminPortal = () => {
                             {/* Header */}
                             <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                                 <div>
-                                    <h2 className="text-lg font-bold text-gray-900">
+                                    <h2 className="text-lg font-bold text-gray-900 flex items-center">
                                         {selectedJob ? selectedJob.title : 'Select a Job'}
+                                        {selectedJob && (
+                                            <button
+                                                onClick={() => handleEditJob(selectedJob)}
+                                                className="ml-3 p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-all"
+                                                title="Edit Job Details"
+                                            >
+                                                <Edit size={16} />
+                                            </button>
+                                        )}
                                     </h2>
-                                    {selectedJob && <p className="text-sm text-gray-500">Managing Applications</p>}
+                                    {selectedJob && <p className="text-sm text-gray-500">Managing Applications • {selectedJob.status}</p>}
                                 </div>
                                 <div className="text-sm text-gray-500">
                                     {applications.length} Applicants

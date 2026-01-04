@@ -5,10 +5,19 @@ export interface Job {
     title: string;
     description: string;
     requirements: string;
-    created_at: string;
-    admin_id: number;
     job_type?: string;
     department?: string;
+    location?: string;
+    duration?: string;
+    deadline?: string;
+    status: string;
+    responsibilities?: string[];
+    required_skills?: string[];
+    preferred_skills?: string[];
+    tools?: string[];
+    min_qualifications?: string;
+    created_at: string;
+    admin_id: number;
 }
 
 export interface JobCreate {

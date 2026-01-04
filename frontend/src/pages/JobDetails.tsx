@@ -91,7 +91,10 @@ const JobDetails = () => {
                     {/* Header */}
                     <div className="bg-indigo-600 px-8 py-10 text-white relative overflow-hidden">
                         <div className="relative z-10">
-                            <h1 className="text-3xl font-bold mb-2">{job.title}</h1>
+                            <div className="flex justify-between items-start">
+                                <h1 className="text-3xl font-bold mb-2">{job.title}</h1>
+                                {job.status === 'Closed' && <span className="px-3 py-1 bg-red-500 rounded-full text-xs font-bold uppercase tracking-wide">Closed</span>}
+                            </div>
                             <div className="flex flex-wrap gap-4 text-indigo-100 text-sm mt-4">
                                 {job.department && (
                                     <span className="flex items-center"><Building size={16} className="mr-1" /> {job.department}</span>
@@ -99,8 +102,19 @@ const JobDetails = () => {
                                 {job.job_type && (
                                     <span className="flex items-center"><Briefcase size={16} className="mr-1" /> {job.job_type}</span>
                                 )}
+                                {job.location && (
+                                    <span className="flex items-center"><span className="mr-1">📍</span> {job.location}</span>
+                                )}
+                                {job.duration && (
+                                    <span className="flex items-center"><span className="mr-1">⏳</span> {job.duration}</span>
+                                )}
                                 <span className="flex items-center"><Clock size={16} className="mr-1" /> Posted {new Date(job.created_at).toLocaleDateString()}</span>
                             </div>
+                            {job.deadline && (
+                                <div className="mt-4 text-sm font-medium bg-white/20 inline-block px-3 py-1 rounded-lg backdrop-blur-sm">
+                                    ⏰ Apply by: {new Date(job.deadline).toLocaleDateString()}
+                                </div>
+                            )}
                         </div>
                         {/* Decorative circles */}
                         <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-white opacity-10 rounded-full"></div>
@@ -108,21 +122,89 @@ const JobDetails = () => {
                     </div>
 
                     <div className="p-8">
-                        {/* Job Description */}
+                        {/* Job Overview */}
                         <div className="mb-8">
-                            <h2 className="text-lg font-bold text-gray-900 mb-4 border-b pb-2">Job Description</h2>
+                            <h2 className="text-lg font-bold text-gray-900 mb-4 border-b pb-2">Overview</h2>
                             <div className="prose text-gray-600 whitespace-pre-wrap">
                                 {job.description}
                             </div>
                         </div>
 
-                        {/* Requirements */}
-                        <div className="mb-8">
-                            <h2 className="text-lg font-bold text-gray-900 mb-4 border-b pb-2">Requirements</h2>
-                            <div className="prose text-gray-600 whitespace-pre-wrap">
-                                {job.requirements}
+                        {/* Responsibilities */}
+                        {job.responsibilities && job.responsibilities.length > 0 && (
+                            <div className="mb-8">
+                                <h2 className="text-lg font-bold text-gray-900 mb-4 border-b pb-2">Key Responsibilities</h2>
+                                <ul className="list-disc pl-5 space-y-2 text-gray-600">
+                                    {job.responsibilities.map((item, idx) => (
+                                        <li key={idx}>{item}</li>
+                                    ))}
+                                </ul>
                             </div>
+                        )}
+
+                        {/* Requirements & Skills */}
+                        <div className="grid md:grid-cols-2 gap-8 mb-8">
+                            <div>
+                                <h2 className="text-lg font-bold text-gray-900 mb-4 border-b pb-2">Required Skills</h2>
+                                {job.required_skills && job.required_skills.length > 0 ? (
+                                    <div className="flex flex-wrap gap-2">
+                                        {job.required_skills.map((skill, idx) => (
+                                            <span key={idx} className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-sm font-medium border border-indigo-100">
+                                                {skill}
+                                            </span>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-gray-500 text-sm">See description.</p>
+                                )}
+                            </div>
+
+                            {job.preferred_skills && job.preferred_skills.length > 0 && (
+                                <div>
+                                    <h2 className="text-lg font-bold text-gray-900 mb-4 border-b pb-2">Preferred Skills</h2>
+                                    <div className="flex flex-wrap gap-2">
+                                        {job.preferred_skills.map((skill, idx) => (
+                                            <span key={idx} className="px-3 py-1 bg-green-50 text-green-700 rounded-full text-sm font-medium border border-green-100">
+                                                {skill}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
+
+                        {/* Tools & Quals */}
+                        <div className="mb-8 space-y-6">
+                            {job.tools && job.tools.length > 0 && (
+                                <div>
+                                    <h3 className="text-md font-semibold text-gray-900 mb-2">Tools & Technologies</h3>
+                                    <div className="flex flex-wrap gap-2">
+                                        {job.tools.map((tool, idx) => (
+                                            <span key={idx} className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-medium border border-gray-200">
+                                                {tool}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {job.min_qualifications && (
+                                <div>
+                                    <h3 className="text-md font-semibold text-gray-900 mb-2">Minimum Qualifications</h3>
+                                    <p className="text-sm text-gray-600">{job.min_qualifications}</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Old Requirements Fallback (if new fields empty) */}
+                        {(!job.responsibilities?.length && !job.required_skills?.length) && (
+                            <div className="mb-8">
+                                <h2 className="text-lg font-bold text-gray-900 mb-4 border-b pb-2">Requirements</h2>
+                                <div className="prose text-gray-600 whitespace-pre-wrap">
+                                    {job.requirements}
+                                </div>
+                            </div>
+                        )}
 
                         {/* Application Section */}
                         <div className="mt-10 bg-gray-50 rounded-xl p-6 border border-gray-200">

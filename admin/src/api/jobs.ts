@@ -14,6 +14,15 @@ export interface Job {
     requirements: string;
     job_type?: string;
     department?: string;
+    location?: string;
+    duration?: string;
+    deadline?: string;
+    status: string;
+    responsibilities?: string[];
+    required_skills?: string[];
+    preferred_skills?: string[];
+    tools?: string[];
+    min_qualifications?: string;
     created_at: string;
     admin_id: number;
 }
@@ -24,6 +33,15 @@ export interface JobCreate {
     requirements: string;
     job_type?: string;
     department?: string;
+    location?: string;
+    duration?: string;
+    deadline?: string;
+    status?: string;
+    responsibilities?: string[];
+    required_skills?: string[];
+    preferred_skills?: string[];
+    tools?: string[];
+    min_qualifications?: string;
 }
 
 export interface Application {
@@ -37,13 +55,18 @@ export interface Application {
     cv_snapshot_path?: string;
 }
 
-export const getJobs = async (): Promise<Job[]> => {
-    const response = await api.get('/api/v1/jobs/');
+export const getJobs = async (filters?: { status?: string }): Promise<Job[]> => {
+    const response = await api.get('/api/v1/jobs/', { params: filters });
     return response.data;
 };
 
 export const createJob = async (jobData: JobCreate): Promise<Job> => {
     const response = await api.post('/api/v1/jobs/', jobData);
+    return response.data;
+};
+
+export const updateJob = async (jobId: number, jobData: Partial<JobCreate>): Promise<Job> => {
+    const response = await api.put(`/api/v1/jobs/${jobId}`, jobData);
     return response.data;
 };
 
