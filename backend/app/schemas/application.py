@@ -9,6 +9,9 @@ class ApplicationBase(BaseModel):
 class ApplicationCreate(ApplicationBase):
     pass
 
+class ApplicationUpdate(BaseModel):
+    status: ApplicationStatus
+
 class ApplicationInDBBase(ApplicationBase):
     id: int
     job_id: int

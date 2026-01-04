@@ -48,8 +48,11 @@ export const applyForJob = async (jobId: number): Promise<Application> => {
     return response.data;
 };
 
-export const getAdminApplications = async (jobId?: number): Promise<Application[]> => {
-    const params = jobId ? { job_id: jobId } : {};
+export const getAdminApplications = async (
+    jobId?: number,
+    filters?: { status?: string; min_score?: number; sort_by?: string }
+): Promise<Application[]> => {
+    const params = { job_id: jobId, ...filters };
     const response = await api.get('/api/v1/applications/admin/list', { params });
     return response.data;
 };

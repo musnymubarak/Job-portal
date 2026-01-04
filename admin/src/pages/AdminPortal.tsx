@@ -1,12 +1,14 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { createJob, getAdminApplications, getJobs, type Job, type JobCreate, type Application } from '../api/jobs';
-import { LogOut, Plus, Briefcase, FileText, BarChart2, ChevronRight, User as UserIcon } from 'lucide-react';
+import { updateApplicationStatus } from '../api/applications';
+import { updateProfile, changePassword } from '../api/users';
+import { LogOut, Plus, Briefcase, FileText, BarChart2, User as UserIcon, Filter, Lock, Check, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const AdminPortal = () => {
-    const { user, logout } = useAuth();
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'post-job'>('dashboard');
+    const { user, logout, setUser } = useAuth();
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'post-job' | 'profile'>('dashboard');
 
     // Dashboard State
     const [jobs, setJobs] = useState<Job[]>([]);
@@ -14,23 +16,40 @@ const AdminPortal = () => {
     const [applications, setApplications] = useState<Application[]>([]);
     const [loadingApps, setLoadingApps] = useState(false);
 
-    // Form State
+    // Filter State
+    const [filters, setFilters] = useState({
+        status: '',
+        min_score: '',
+        sort_by: 'date_desc'
+    });
+
+    // Form State (Job)
     const [jobData, setJobData] = useState<JobCreate>({ title: '', description: '', requirements: '' });
     const [posting, setPosting] = useState(false);
 
-    // Initial Load
+    // Profile State
+    const [profileData, setProfileData] = useState({ full_name: '', email: '' });
+    const [passwordData, setPasswordData] = useState({ current_password: '', new_password: '' });
+
+    // Initial Load & Profile Sync
     useEffect(() => {
         fetchJobs();
     }, []);
 
-    // Fetch applications when a job is selected
+    useEffect(() => {
+        if (user) {
+            setProfileData({ full_name: user.full_name || '', email: user.email || '' });
+        }
+    }, [user]);
+
+    // Fetch applications when a job is selected or filters change
     useEffect(() => {
         if (selectedJob) {
             fetchApplications(selectedJob.id);
         } else {
             setApplications([]);
         }
-    }, [selectedJob]);
+    }, [selectedJob, filters]);
 
     const fetchJobs = async () => {
         try {
@@ -38,7 +57,7 @@ const AdminPortal = () => {
             // Sort by newest first
             const sorted = data.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
             setJobs(sorted);
-            // Select first job by default if available
+            // Select first job by default if available and nothing selected
             if (sorted.length > 0 && !selectedJob) {
                 setSelectedJob(sorted[0]);
             }
@@ -50,7 +69,12 @@ const AdminPortal = () => {
     const fetchApplications = async (jobId: number) => {
         setLoadingApps(true);
         try {
-            const data = await getAdminApplications(jobId);
+            // Clean filters
+            const appFilters: any = { ...filters };
+            if (!appFilters.status || appFilters.status === 'all') delete appFilters.status;
+            if (!appFilters.min_score) delete appFilters.min_score;
+
+            const data = await getAdminApplications(jobId, appFilters);
             setApplications(data);
         } catch (error) {
             console.error("Failed to load applications", error);
@@ -81,6 +105,59 @@ const AdminPortal = () => {
             console.error(error);
         } finally {
             setPosting(false);
+        }
+    };
+
+    const handleUpdateProfile = async (e: FormEvent) => {
+        e.preventDefault();
+        const promise = updateProfile(profileData);
+        toast.promise(promise, {
+            loading: 'Updating Profile...',
+            success: 'Profile Updated!',
+            error: 'Failed to update profile'
+        });
+
+        try {
+            const updated = await promise;
+            if (setUser) setUser(updated);
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const handleChangePassword = async (e: FormEvent) => {
+        e.preventDefault();
+        const promise = changePassword(passwordData);
+        toast.promise(promise, {
+            loading: 'Updating Password...',
+            success: 'Password Changed Successfully!',
+            error: (err: any) => err.response?.data?.detail || 'Failed to change password'
+        });
+
+        try {
+            await promise;
+            setPasswordData({ current_password: '', new_password: '' });
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const handleStatusUpdate = async (appId: number, newStatus: string) => {
+        const promise = updateApplicationStatus(appId, newStatus);
+        toast.promise(promise, {
+            loading: 'Updating Status...',
+            success: `Application ${newStatus.toUpperCase()}`,
+            error: 'Failed to update status'
+        });
+
+        try {
+            await promise;
+            // Update local state
+            setApplications(applications.map(app =>
+                app.id === appId ? { ...app, status: newStatus } : app
+            ));
+        } catch (error) {
+            console.error(error);
         }
     };
 
@@ -136,9 +213,18 @@ const AdminPortal = () => {
                         >
                             <Plus size={18} className="mr-3" /> Post New Job
                         </button>
+                        <button
+                            onClick={() => setActiveTab('profile')}
+                            className={`flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'profile'
+                                ? 'bg-indigo-50 text-indigo-700'
+                                : 'text-gray-600 hover:bg-gray-100'
+                                }`}
+                        >
+                            <UserIcon size={18} className="mr-3" /> Admin Profile
+                        </button>
                     </div>
 
-                    {/* Job List for Filtering */}
+                    {/* Job List for Filtering (Only show in dashboard) */}
                     {activeTab === 'dashboard' && (
                         <div className="flex-1 flex flex-col bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                             <div className="p-4 border-b border-gray-100 bg-gray-50">
@@ -169,7 +255,7 @@ const AdminPortal = () => {
                 {/* MAIN CONTENT Area */}
                 <main className="flex-1 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
 
-                    {activeTab === 'post-job' ? (
+                    {activeTab === 'post-job' && (
                         <div className="p-8 max-w-2xl mx-auto w-full overflow-y-auto">
                             <h2 className="text-2xl font-bold text-gray-900 mb-6">Create New Job Posting</h2>
                             <form onSubmit={handlePostJob} className="space-y-6">
@@ -215,7 +301,76 @@ const AdminPortal = () => {
                                 </div>
                             </form>
                         </div>
-                    ) : (
+                    )}
+
+                    {activeTab === 'profile' && (
+                        <div className="p-8 max-w-xl mx-auto w-full overflow-y-auto space-y-8">
+                            {/* Account Details */}
+                            <div className="bg-white p-6">
+                                <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                                    <UserIcon className="mr-2" /> Account Details
+                                </h2>
+                                <form onSubmit={handleUpdateProfile} className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Full Name</label>
+                                        <input
+                                            type="text"
+                                            className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                            value={profileData.full_name}
+                                            onChange={(e) => setProfileData({ ...profileData, full_name: e.target.value })}
+                                            placeholder="Your Full Name"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Email Address</label>
+                                        <input
+                                            type="email"
+                                            className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                            value={profileData.email}
+                                            onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+                                        />
+                                    </div>
+                                    <button type="submit" className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700">
+                                        Update Profile
+                                    </button>
+                                </form>
+                            </div>
+
+                            {/* Change Password */}
+                            <div className="bg-white p-6 border-t border-gray-100">
+                                <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                                    <Lock className="mr-2" /> Security
+                                </h2>
+                                <form onSubmit={handleChangePassword} className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Current Password</label>
+                                        <input
+                                            type="password"
+                                            required
+                                            className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                            value={passwordData.current_password}
+                                            onChange={(e) => setPasswordData({ ...passwordData, current_password: e.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">New Password</label>
+                                        <input
+                                            type="password"
+                                            required
+                                            className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                            value={passwordData.new_password}
+                                            onChange={(e) => setPasswordData({ ...passwordData, new_password: e.target.value })}
+                                        />
+                                    </div>
+                                    <button type="submit" className="bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-900">
+                                        Change Password
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'dashboard' && (
                         // DASHBOARD VIEW
                         <div className="flex flex-col h-full">
                             {/* Header */}
@@ -231,6 +386,51 @@ const AdminPortal = () => {
                                 </div>
                             </div>
 
+                            {/* Filter Bar */}
+                            {selectedJob && (
+                                <div className="px-6 py-3 border-b border-gray-100 flex flex-wrap gap-4 items-center bg-white shadow-sm z-10">
+                                    <div className="flex items-center text-gray-500 text-xs font-bold uppercase tracking-wide">
+                                        <Filter size={14} className="mr-2" /> Filters
+                                    </div>
+
+                                    <select
+                                        className="border-gray-200 rounded text-sm py-1 pl-2 pr-8 focus:ring-indigo-500 focus:border-indigo-500"
+                                        value={filters.status}
+                                        onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                                    >
+                                        <option value="all">All Statuses</option>
+                                        <option value="applied">Applied</option>
+                                        <option value="reviewed">Reviewed</option>
+                                        <option value="accepted">Accepted</option>
+                                        <option value="rejected">Rejected</option>
+                                    </select>
+
+                                    <div className="flex items-center space-x-2">
+                                        <label className="text-xs text-gray-500">Min Score:</label>
+                                        <input
+                                            type="number"
+                                            min="0" max="100"
+                                            className="w-16 border-gray-200 rounded text-sm py-1 px-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                            placeholder="0"
+                                            value={filters.min_score}
+                                            onChange={(e) => setFilters({ ...filters, min_score: e.target.value })}
+                                        />
+                                    </div>
+
+                                    <div className="flex-1"></div>
+
+                                    <select
+                                        className="border-gray-200 rounded text-sm py-1 pl-2 pr-8 focus:ring-indigo-500 focus:border-indigo-500"
+                                        value={filters.sort_by}
+                                        onChange={(e) => setFilters({ ...filters, sort_by: e.target.value })}
+                                    >
+                                        <option value="date_desc">Newest First</option>
+                                        <option value="date_asc">Oldest First</option>
+                                        <option value="score_desc">Highest Score</option>
+                                    </select>
+                                </div>
+                            )}
+
                             {/* Table Area */}
                             <div className="flex-1 overflow-auto">
                                 {!selectedJob ? (
@@ -243,7 +443,7 @@ const AdminPortal = () => {
                                 ) : applications.length === 0 ? (
                                     <div className="flex flex-col items-center justify-center h-full text-gray-400">
                                         <UserIcon size={48} className="mb-4 opacity-20" />
-                                        <p>No applications received for this job yet.</p>
+                                        <p>No applications match your criteria.</p>
                                     </div>
                                 ) : (
                                     <table className="min-w-full divide-y divide-gray-200">
@@ -254,6 +454,7 @@ const AdminPortal = () => {
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CV</th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applied On</th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody className="bg-white divide-y divide-gray-200">
@@ -287,9 +488,34 @@ const AdminPortal = () => {
                                                         {new Date(app.created_at).toLocaleDateString()}
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
-                                                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800 uppercase">
+                                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full uppercase ${app.status === 'accepted' ? 'bg-green-100 text-green-800' :
+                                                                app.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                                                    'bg-blue-100 text-blue-800'
+                                                            }`}>
                                                             {app.status}
                                                         </span>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                        {app.status === 'applied' || app.status === 'reviewed' ? (
+                                                            <div className="flex justify-end space-x-2">
+                                                                <button
+                                                                    onClick={() => handleStatusUpdate(app.id, 'accepted')}
+                                                                    className="text-green-600 hover:text-green-900 bg-green-50 hover:bg-green-100 p-1 rounded transition-colors"
+                                                                    title="Accept Candidate"
+                                                                >
+                                                                    <Check size={18} />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleStatusUpdate(app.id, 'rejected')}
+                                                                    className="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 p-1 rounded transition-colors"
+                                                                    title="Reject Candidate"
+                                                                >
+                                                                    <X size={18} />
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-gray-400 text-xs">-</span>
+                                                        )}
                                                     </td>
                                                 </tr>
                                             ))}

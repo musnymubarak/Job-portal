@@ -10,6 +10,8 @@ class Job(Base):
     title = Column(String, index=True, nullable=False)
     description = Column(Text, nullable=False)
     requirements = Column(Text, nullable=False)
+    job_type = Column(String, index=True, nullable=True) # Internship, Full-time
+    department = Column(String, index=True, nullable=True) # Engineering, Marketing, etc.
     admin_id = Column(Integer, ForeignKey("users.id"))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

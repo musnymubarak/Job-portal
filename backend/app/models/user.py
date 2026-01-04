@@ -25,3 +25,4 @@ class User(Base):
     projects = relationship("Project", back_populates="student")
     reviews = relationship("Review", back_populates="mentor")
     activity_logs = relationship("ActivityLog", back_populates="user")
+    notifications = relationship("Notification", back_populates="recipient")

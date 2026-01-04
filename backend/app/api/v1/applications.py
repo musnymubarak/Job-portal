@@ -109,6 +109,9 @@ def list_applications_admin(
     skip: int = 0,
     limit: int = 100,
     job_id: Optional[int] = None,
+    min_score: Optional[float] = None,
+    status: Optional[str] = None,
+    sort_by: Optional[str] = "date_desc",
     current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
@@ -123,6 +126,19 @@ def list_applications_admin(
     if job_id:
         query = query.filter(Application.job_id == job_id)
         
+    if status and status != 'all':
+        query = query.filter(Application.status == status)
+        
+    if min_score is not None:
+        query = query.filter(Application.ats_score >= min_score)
+        
+    if sort_by == "score_desc":
+        query = query.order_by(Application.ats_score.desc())
+    elif sort_by == "date_asc":
+        query = query.order_by(Application.created_at.asc())
+    else: # Default: date_desc (newest first)
+        query = query.order_by(Application.created_at.desc())
+        
     applications = query.offset(skip).limit(limit).all()
     return applications
 
@@ -136,3 +152,48 @@ def list_my_applications(
     """
     applications = db.query(Application).filter(Application.student_id == current_user.id).all()
     return applications
+
+@router.put("/{application_id}/status", response_model=application_schemas.Application)
+def update_application_status(
+    *,
+    db: Session = Depends(deps.get_db),
+    application_id: int,
+    status_update: application_schemas.ApplicationUpdate,
+    current_user: User = Depends(deps.get_current_active_user),
+) -> Any:
+    """
+    Update application status (Admin only).
+    Triggers a notification for the student.
+    """
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    application = db.query(Application).filter(Application.id == application_id).first()
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+        
+    old_status = application.status
+    application.status = status_update.status
+    db.add(application)
+    
+    # Create Notification
+    from app.models.notification import Notification
+    
+    message = f"Your application for Job #{application.job_id} has been updated to: {status_update.status.value.upper()}."
+    notification_type = "info"
+    if status_update.status == ApplicationStatus.ACCEPTED:
+        message = f"Congratulations! Your application for Job #{application.job_id} has been ACCEPTED!"
+        notification_type = "success"
+    elif status_update.status == ApplicationStatus.REJECTED:
+        notification_type = "error" # or warning
+        
+    notification = Notification(
+        recipient_id=application.student_id,
+        message=message,
+        type=notification_type
+    )
+    db.add(notification)
+    
+    db.commit()
+    db.refresh(application)
+    return application

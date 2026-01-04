@@ -1,4 +1,4 @@
-from typing import List, Any
+from typing import List, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.api import deps
@@ -28,11 +28,30 @@ def create_job(
         title=job_in.title,
         description=job_in.description,
         requirements=job_in.requirements,
+        job_type=job_in.job_type,
+        department=job_in.department,
         admin_id=current_user.id
     )
     db.add(job)
     db.commit()
     db.refresh(job)
+    
+    # Broadcast Notification to all Students
+    from app.models.notification import Notification
+    
+    students = db.query(User).filter(User.role == UserRole.STUDENT).all()
+    notifications = []
+    for student in students:
+        notifications.append(Notification(
+            recipient_id=student.id,
+            message=f"New Job Posted: {job.title}",
+            type="info"
+        ))
+    
+    if notifications:
+        db.add_all(notifications)
+        db.commit()
+        
     return job
 
 @router.get("/", response_model=List[job_schemas.Job])
@@ -40,12 +59,29 @@ def read_jobs(
     db: Session = Depends(deps.get_db),
     skip: int = 0,
     limit: int = 100,
+    job_type: Optional[str] = None,
+    department: Optional[str] = None,
+    sort_by: Optional[str] = "newest", # newest, oldest
     current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
     Retrieve jobs. (Accessible to all authenticated users)
+    Supports filtering by job_type and department.
+    Supports sorting by created_at (newest/oldest).
     """
-    jobs = db.query(Job).offset(skip).limit(limit).all()
+    query = db.query(Job)
+
+    if job_type:
+        query = query.filter(Job.job_type == job_type)
+    if department:
+        query = query.filter(Job.department == department)
+    
+    if sort_by == "oldest":
+        query = query.order_by(Job.created_at.asc())
+    else: # Default to newest
+        query = query.order_by(Job.created_at.desc())
+
+    jobs = query.offset(skip).limit(limit).all()
     return jobs
 
 @router.get("/{job_id}", response_model=job_schemas.Job)

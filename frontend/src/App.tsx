@@ -7,7 +7,8 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 
 // Component to handle role-based redirect
 const RootRedirect = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth();
+  if (loading) return <div className="p-8 text-center text-gray-500">Loading...</div>;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (user?.role === 'student') return <Navigate to="/dashboard" replace />;
   return <div className="p-8 text-center text-red-600 font-bold">Access Denied: Students Only</div>;

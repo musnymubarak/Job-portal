@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.api import deps
 from app.models.user import User
 from app.schemas import user as user_schemas
+from app.core.security import verify_password, get_password_hash
 import shutil
 import os
 from pathlib import Path
@@ -65,4 +66,41 @@ def get_user_cv(
     """
     # ... Implementation for file download/serving would go here
     # For now, we will serve static files via a mounted static directory in main.py
-    pass
+@router.post("/change-password", response_model=Any)
+def change_password(
+    *,
+    db: Session = Depends(deps.get_db),
+    password_in: user_schemas.PasswordChange,
+    current_user: User = Depends(deps.get_current_active_user),
+) -> Any:
+    """
+    Change password.
+    """
+    if not verify_password(password_in.current_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Incorrect password")
+    
+    current_user.hashed_password = get_password_hash(password_in.new_password)
+    db.add(current_user)
+    db.commit()
+    return {"message": "Password updated successfully"}
+
+@router.put("/me", response_model=user_schemas.User)
+def update_user_me(
+    *,
+    db: Session = Depends(deps.get_db),
+    user_in: user_schemas.UserUpdate,
+    current_user: User = Depends(deps.get_current_active_user),
+) -> Any:
+    """
+    Update own profile.
+    """
+    if user_in.full_name is not None:
+        current_user.full_name = user_in.full_name
+    if user_in.email is not None:
+        # Check if email is taken? For now simple update.
+        current_user.email = user_in.email
+        
+    db.add(current_user)
+    db.commit()
+    db.refresh(current_user)
+    return current_user

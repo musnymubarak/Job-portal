@@ -7,6 +7,8 @@ export interface Job {
     requirements: string;
     created_at: string;
     admin_id: number;
+    job_type?: string;
+    department?: string;
 }
 
 export interface JobCreate {
@@ -24,8 +26,10 @@ export interface Application {
     created_at: string;
 }
 
-export const getJobs = async (): Promise<Job[]> => {
-    const response = await api.get('/api/v1/jobs/');
+export const getJobs = async (
+    filters?: { job_type?: string; department?: string; sort_by?: string }
+): Promise<Job[]> => {
+    const response = await api.get('/api/v1/jobs/', { params: filters });
     return response.data;
 };
 

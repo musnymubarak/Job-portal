@@ -1,16 +1,16 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { login as loginApi, register as registerApi, type RegisterData } from '../api/auth';
+import { getMe } from '../api/users';
 
-// Note: In a real app we would decode the token to get the user info or fetch /users/me
-// For now we will just store the token and a simple user object
 export interface User {
     id: number;
     email: string;
     role: string;
+    full_name?: string;
     cv_filename?: string;
 }
 
-interface AuthContextType {
+export interface AuthContextType {
     user: User | null;
     token: string | null;
     login: (username: string, password: string) => Promise<void>;
@@ -18,6 +18,7 @@ interface AuthContextType {
     logout: () => void;
     isAuthenticated: boolean;
     setUser: (user: User | null) => void;
+    loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>(null!);
@@ -25,19 +26,25 @@ const AuthContext = createContext<AuthContextType>(null!);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
     const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+    const [loading, setLoading] = useState<boolean>(!!localStorage.getItem('token'));
 
     useEffect(() => {
-        if (token) {
-            // Here we ideally fetch user data using the token
-            // For simplicity in this step, we'll try to decode if possible or just assume logged in
-            // In a production app, verify token validity
-            try {
-                // Logic to decode token would go here
-                // setUser({ email: decoded.sub, role: 'student' }); // Mock
-            } catch (e) {
-                logout();
+        const initAuth = async () => {
+            if (token) {
+                try {
+                    const userData = await getMe();
+                    setUser(userData);
+                } catch (e) {
+                    console.error("Failed to fetch user", e);
+                    logout();
+                } finally {
+                    setLoading(false);
+                }
+            } else {
+                setLoading(false);
             }
-        }
+        };
+        initAuth();
     }, [token]);
 
     const login = async (username: string, password: string) => {
@@ -45,10 +52,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const data = await loginApi(username, password);
             setToken(data.access_token);
             localStorage.setItem('token', data.access_token);
-            // We really should fetch the user details here
-            // For now, let's mock the user state update so the UI reacts
-            // Mock update, should be replaced by fetch
-            setUser({ email: username, role: 'student', id: 1 });
+            const userData = await getMe();
+            setUser(userData);
         } catch (error) {
             console.error("Login failed", error);
             throw error;
@@ -66,7 +71,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, token, login, logout, register, isAuthenticated: !!token, setUser }}>
+        <AuthContext.Provider value={{ user, token, login, logout, register, isAuthenticated: !!token, setUser, loading }}>
             {children}
         </AuthContext.Provider>
     );
