@@ -121,7 +121,10 @@ def list_applications_admin(
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    query = db.query(Application).options(joinedload(Application.student))
+    query = db.query(Application).join(Job).options(joinedload(Application.student))
+    
+    # Restrict to jobs posted by this admin
+    query = query.filter(Job.admin_id == current_user.id)
     
     if job_id:
         query = query.filter(Application.job_id == job_id)
@@ -168,9 +171,16 @@ def update_application_status(
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    application = db.query(Application).filter(Application.id == application_id).first()
+    application = db.query(Application).join(Job).filter(
+        Application.id == application_id
+    ).first()
+    
     if not application:
         raise HTTPException(status_code=404, detail="Application not found")
+        
+    # Check if the job belongs to this admin
+    if application.job.admin_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to update this application")
         
     old_status = application.status
     application.status = status_update.status

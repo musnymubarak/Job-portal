@@ -39,6 +39,7 @@ const StudentPortal = () => {
         if (user) {
             setProfileData({ full_name: user.full_name || '', email: user.email || '' });
             fetchNotifications();
+            fetchApplications();
         }
     }, [user]);
 
@@ -362,9 +363,13 @@ const StudentPortal = () => {
                                     <p className="text-gray-600 text-sm mb-4 line-clamp-3 flex-1">{job.description}</p>
                                     <button
                                         onClick={() => handleApply(job.id)}
-                                        className="w-full mt-auto bg-indigo-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-indigo-700 transition-colors"
+                                        disabled={myApplications.some(app => app.job_id === job.id)}
+                                        className={`w-full mt-auto rounded-lg px-4 py-2 text-sm font-medium transition-colors ${myApplications.some(app => app.job_id === job.id)
+                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                            : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                                            }`}
                                     >
-                                        Apply Now
+                                        {myApplications.some(app => app.job_id === job.id) ? 'Applied' : 'Apply Now'}
                                     </button>
                                 </div>
                             ))}
