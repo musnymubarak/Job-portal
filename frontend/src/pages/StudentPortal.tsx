@@ -6,6 +6,7 @@ import { uploadCV, updateProfile, changePassword } from '../api/users';
 import { getNotifications, markAsRead, markAllAsRead, type Notification } from '../api/notifications';
 import { LogOut, Upload, User as UserIcon, Briefcase, FileText, CheckCircle, Filter, Bell } from 'lucide-react';
 import toast from 'react-hot-toast';
+import ThemeToggle from '../components/ThemeToggle';
 
 const StudentPortal = () => {
     const { user, logout, setUser } = useAuth();
@@ -174,16 +175,17 @@ const StudentPortal = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200 flex flex-col">
             {/* Navbar */}
-            <nav className="bg-white shadow-sm border-b border-gray-100 z-20 sticky top-0">
+            <nav className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-100 dark:border-gray-700 z-20 sticky top-0 transition-colors duration-200">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between h-16 items-center">
                         <div className="flex items-center">
-                            <Briefcase className="h-6 w-6 text-indigo-600 mr-2" />
-                            <span className="font-bold text-xl text-gray-900">InternHub</span>
+                            <Briefcase className="h-6 w-6 text-indigo-600 dark:text-indigo-400 mr-2" />
+                            <span className="font-bold text-xl text-gray-900 dark:text-white">InternHub</span>
                         </div>
                         <div className="flex items-center space-x-4">
+                            <ThemeToggle />
                             {/* Notifications */}
                             <div className="relative" ref={notificationRef}>
                                 <button
@@ -197,9 +199,9 @@ const StudentPortal = () => {
                                 </button>
 
                                 {showNotifications && (
-                                    <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-50">
-                                        <div className="px-4 py-3 border-b border-gray-50 flex justify-between items-center bg-gray-50">
-                                            <h3 className="text-sm font-semibold text-gray-700">Notifications</h3>
+                                    <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden z-50">
+                                        <div className="px-4 py-3 border-b border-gray-50 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-700/50">
+                                            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Notifications</h3>
                                             {unreadCount > 0 && (
                                                 <button
                                                     onClick={() => { markAllAsRead(); setNotifications(notifications.map(n => ({ ...n, is_read: true }))); }}
@@ -219,12 +221,12 @@ const StudentPortal = () => {
                                                     <div
                                                         key={notif.id}
                                                         onClick={() => !notif.is_read && handleMarkRead(notif.id)}
-                                                        className={`p-4 border-b border-gray-50 cursor-pointer transition-colors ${notif.is_read ? 'bg-white hover:bg-gray-50' : 'bg-indigo-50 hover:bg-indigo-100'}`}
+                                                        className={`p-4 border-b border-gray-50 dark:border-gray-700 cursor-pointer transition-colors ${notif.is_read ? 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700' : 'bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/40'}`}
                                                     >
-                                                        <p className={`text-sm ${notif.is_read ? 'text-gray-600' : 'text-gray-900 font-medium'}`}>
+                                                        <p className={`text-sm ${notif.is_read ? 'text-gray-600 dark:text-gray-400' : 'text-gray-900 dark:text-white font-medium'}`}>
                                                             {notif.message}
                                                         </p>
-                                                        <p className="text-xs text-gray-400 mt-1">
+                                                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                                                             {new Date(notif.created_at).toLocaleDateString()} {new Date(notif.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                         </p>
                                                     </div>
@@ -283,13 +285,13 @@ const StudentPortal = () => {
                 {activeTab === 'jobs' && (
                     <div className="space-y-6">
                         {/* Filters Bar */}
-                        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-wrap gap-4 items-center">
-                            <div className="flex items-center text-gray-500 text-sm font-medium">
+                        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-wrap gap-4 items-center">
+                            <div className="flex items-center text-gray-500 dark:text-gray-400 text-sm font-medium">
                                 <Filter size={16} className="mr-2" /> Filters:
                             </div>
 
                             <select
-                                className="border-gray-200 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                className="border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 dark:text-white"
                                 value={filters.job_type}
                                 onChange={(e) => setFilters({ ...filters, job_type: e.target.value })}
                             >
@@ -299,7 +301,7 @@ const StudentPortal = () => {
                             </select>
 
                             <select
-                                className="border-gray-200 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                className="border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 dark:text-white"
                                 value={filters.department}
                                 onChange={(e) => setFilters({ ...filters, department: e.target.value })}
                             >
@@ -313,7 +315,7 @@ const StudentPortal = () => {
                             <div className="flex-1"></div>
 
                             <select
-                                className="border-gray-200 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                className="border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 dark:text-white"
                                 value={filters.sort_by}
                                 onChange={(e) => setFilters({ ...filters, sort_by: e.target.value })}
                             >
@@ -325,10 +327,10 @@ const StudentPortal = () => {
                         {/* Job List */}
                         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                             {jobs.map(job => (
-                                <div key={job.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow flex flex-col">
+                                <div key={job.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 hover:shadow-md transition-shadow flex flex-col">
                                     <div className="flex justify-between items-start mb-4">
                                         <div>
-                                            <h3 className="text-lg font-bold text-gray-900">{job.title}</h3>
+                                            <h3 className="text-lg font-bold text-gray-900 dark:text-white">{job.title}</h3>
                                             <div className="flex gap-2 mt-1">
                                                 {job.job_type && (
                                                     <span className="px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700">{job.job_type}</span>
@@ -340,11 +342,11 @@ const StudentPortal = () => {
                                         </div>
                                         <span className="text-xs text-gray-400">{new Date(job.created_at).toLocaleDateString()}</span>
                                     </div>
-                                    <p className="text-gray-600 text-sm mb-4 line-clamp-3 flex-1">{job.description}</p>
+                                    <p className="text-gray-600 dark:text-gray-300 text-sm mb-4 line-clamp-3 flex-1">{job.description}</p>
                                     <Link
                                         to={`/jobs/${job.id}`}
                                         className={`w-full mt-auto text-center rounded-lg px-4 py-2 text-sm font-medium transition-colors ${myApplications.some(app => app.job_id === job.id)
-                                            ? 'bg-white border border-gray-200 text-green-600'
+                                            ? 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-green-600 dark:text-green-400'
                                             : 'bg-indigo-600 text-white hover:bg-indigo-700'
                                             }`}
                                     >
@@ -353,7 +355,7 @@ const StudentPortal = () => {
                                 </div>
                             ))}
                             {jobs.length === 0 && !loadingJobs && (
-                                <div className="col-span-full text-center py-12 text-gray-500">
+                                <div className="col-span-full text-center py-12 text-gray-500 dark:text-gray-400">
                                     No jobs found matching your criteria.
                                 </div>
                             )}
@@ -362,27 +364,27 @@ const StudentPortal = () => {
                 )}
 
                 {activeTab === 'applications' && (
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
                         <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
+                            <thead className="bg-gray-50 dark:bg-gray-700/50">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Job ID</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applied On</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Result</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Job ID</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Applied On</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Result</th>
                                 </tr>
                             </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
+                            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                                 {myApplications.map((app) => (
                                     <tr key={app.id}>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">#{app.job_id}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(app.created_at).toLocaleDateString()}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">#{app.job_id}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{new Date(app.created_at).toLocaleDateString()}</td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800 uppercase">
                                                 {app.status}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                             {app.status === 'accepted' ? '🎉 Accepted' : 'Pending Review'}
                                         </td>
                                     </tr>
@@ -396,26 +398,26 @@ const StudentPortal = () => {
                 {activeTab === 'profile' && (
                     <div className="max-w-xl mx-auto space-y-8">
                         {/* CV Section */}
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
-                            <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-8">
+                            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
                                 <FileText className="mr-2" /> CV Management
                             </h2>
                             <div className="mb-6">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Current CV</label>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Current CV</label>
                                 {user?.cv_filename ? (
-                                    <div className="flex items-center p-4 bg-indigo-50 rounded-lg border border-indigo-100 text-indigo-700">
+                                    <div className="flex items-center p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-100 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300">
                                         <FileText size={20} className="mr-3" />
                                         <span className="flex-1 truncate text-sm font-medium">{user.cv_filename}</span>
                                         <CheckCircle size={18} className="text-green-500 ml-2" />
                                     </div>
                                 ) : (
-                                    <p className="text-sm text-gray-500 italic">No CV uploaded yet.</p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 italic">No CV uploaded yet.</p>
                                 )}
                             </div>
-                            <div className="border-t border-gray-100 pt-6">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Upload New CV (PDF)</label>
+                            <div className="border-t border-gray-100 dark:border-gray-700 pt-6">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Upload New CV (PDF)</label>
                                 <div className="flex items-center justify-center w-full">
-                                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+                                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                                         <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                             <Upload className="w-8 h-8 mb-3 text-gray-400" />
                                             <p className="mb-2 text-sm text-gray-500"><span className="font-semibold">Click to upload</span></p>
@@ -434,26 +436,26 @@ const StudentPortal = () => {
                         </div>
 
                         {/* Account Details */}
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
-                            <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-8">
+                            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
                                 <UserIcon className="mr-2" /> Account Details
                             </h2>
                             <form onSubmit={handleUpdateProfile} className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">Full Name</label>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Full Name</label>
                                     <input
                                         type="text"
-                                        className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                        className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
                                         value={profileData.full_name}
                                         onChange={(e) => setProfileData({ ...profileData, full_name: e.target.value })}
                                         placeholder="Your Full Name"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">Email Address</label>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email Address</label>
                                     <input
                                         type="email"
-                                        className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                        className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
                                         value={profileData.email}
                                         onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
                                     />
@@ -465,27 +467,27 @@ const StudentPortal = () => {
                         </div>
 
                         {/* Change Password */}
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
-                            <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-8">
+                            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
                                 <LogOut className="mr-2 rotate-90" /> Security
                             </h2>
                             <form onSubmit={handleChangePassword} className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">Current Password</label>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Current Password</label>
                                     <input
                                         type="password"
                                         required
-                                        className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                        className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
                                         value={passwordData.current_password}
                                         onChange={(e) => setPasswordData({ ...passwordData, current_password: e.target.value })}
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">New Password</label>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">New Password</label>
                                     <input
                                         type="password"
                                         required
-                                        className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                        className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
                                         value={passwordData.new_password}
                                         onChange={(e) => setPasswordData({ ...passwordData, new_password: e.target.value })}
                                     />

@@ -5,6 +5,7 @@ import { updateApplicationStatus } from '../api/applications';
 import { updateProfile, changePassword } from '../api/users';
 import { LogOut, Plus, Briefcase, FileText, BarChart2, User as UserIcon, Filter, Lock, Check, X, Edit } from 'lucide-react';
 import toast from 'react-hot-toast';
+import ThemeToggle from '../components/ThemeToggle';
 
 const AdminPortal = () => {
     const { user, logout, setUser } = useAuth();
@@ -211,16 +212,17 @@ const AdminPortal = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200 flex flex-col">
             {/* Navbar */}
-            <nav className="bg-white shadow-sm border-b border-gray-100 z-10">
+            <nav className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-100 dark:border-gray-700 z-10 transition-colors duration-200">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between h-16 items-center">
                         <div className="flex items-center">
-                            <Briefcase className="h-6 w-6 text-indigo-600 mr-2" />
-                            <span className="font-bold text-xl text-gray-900">AdminPortal</span>
+                            <Briefcase className="h-6 w-6 text-indigo-600 dark:text-indigo-400 mr-2" />
+                            <span className="font-bold text-xl text-gray-900 dark:text-white">AdminPortal</span>
                         </div>
                         <div className="flex items-center space-x-4">
+                            <ThemeToggle />
                             <span className="text-sm text-gray-600">{user?.email}</span>
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
                                 ADMIN
@@ -241,8 +243,8 @@ const AdminPortal = () => {
                         <button
                             onClick={() => setActiveTab('dashboard')}
                             className={`flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'dashboard'
-                                ? 'bg-indigo-50 text-indigo-700'
-                                : 'text-gray-600 hover:bg-gray-100'
+                                ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300'
+                                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                                 }`}
                         >
                             <BarChart2 size={18} className="mr-3" /> Dashboard
@@ -257,8 +259,8 @@ const AdminPortal = () => {
                                 });
                             }}
                             className={`flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'post-job'
-                                ? 'bg-indigo-50 text-indigo-700'
-                                : 'text-gray-600 hover:bg-gray-100'
+                                ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300'
+                                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                                 }`}
                         >
                             <Plus size={18} className="mr-3" /> Post New Job
@@ -266,8 +268,8 @@ const AdminPortal = () => {
                         <button
                             onClick={() => setActiveTab('profile')}
                             className={`flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'profile'
-                                ? 'bg-indigo-50 text-indigo-700'
-                                : 'text-gray-600 hover:bg-gray-100'
+                                ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300'
+                                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                                 }`}
                         >
                             <UserIcon size={18} className="mr-3" /> Admin Profile
@@ -276,19 +278,19 @@ const AdminPortal = () => {
 
                     {/* Job List for Filtering (Only show in dashboard) */}
                     {activeTab === 'dashboard' && (
-                        <div className="flex-1 flex flex-col bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                            <div className="p-4 border-b border-gray-100 bg-gray-50">
-                                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Select Job</h3>
+                        <div className="flex-1 flex flex-col bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+                            <div className="p-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+                                <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Select Job</h3>
                             </div>
                             <div className="flex-1 overflow-y-auto">
                                 {jobs.map(job => (
                                     <button
                                         key={job.id}
                                         onClick={() => setSelectedJob(job)}
-                                        className={`w-full text-left px-4 py-3 border-b border-gray-50 hover:bg-gray-50 transition-colors ${selectedJob?.id === job.id ? 'bg-indigo-50 border-l-4 border-l-indigo-600' : 'border-l-4 border-l-transparent'
+                                        className={`w-full text-left px-4 py-3 border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${selectedJob?.id === job.id ? 'bg-indigo-50 dark:bg-indigo-900/20 border-l-4 border-l-indigo-600 dark:border-l-indigo-500' : 'border-l-4 border-l-transparent'
                                             }`}
                                     >
-                                        <p className={`text-sm font-medium ${selectedJob?.id === job.id ? 'text-indigo-900' : 'text-gray-900'}`}>
+                                        <p className={`text-sm font-medium ${selectedJob?.id === job.id ? 'text-indigo-900 dark:text-indigo-300' : 'text-gray-900 dark:text-white'}`}>
                                             {job.title}
                                         </p>
                                         <p className="text-xs text-gray-500 mt-1">
@@ -303,32 +305,32 @@ const AdminPortal = () => {
                 </aside>
 
                 {/* MAIN CONTENT Area */}
-                <main className="flex-1 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+                <main className="flex-1 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden flex flex-col">
 
                     {activeTab === 'post-job' && (
                         <div className="p-8 max-w-4xl mx-auto w-full overflow-y-auto pb-20">
-                            <h2 className="text-2xl font-bold text-gray-900 mb-6">{editingJobId ? 'Edit Job Posting' : 'Create New Job Posting'}</h2>
+                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">{editingJobId ? 'Edit Job Posting' : 'Create New Job Posting'}</h2>
                             <form onSubmit={handlePostJob} className="space-y-8">
 
                                 {/* Section 1: Basic Info */}
-                                <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm space-y-6">
-                                    <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Basic Information</h3>
+                                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-100 shadow-sm space-y-6">
+                                    <h3 className="text-lg font-medium text-gray-900 dark:text-white border-b pb-2">Basic Information</h3>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="md:col-span-2">
-                                            <label className="block text-sm font-medium text-gray-700">Job Title *</label>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Job Title *</label>
                                             <input
                                                 type="text"
                                                 required
-                                                className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                                className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
                                                 value={jobData.title}
                                                 onChange={(e) => setJobData({ ...jobData, title: e.target.value })}
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700">Department *</label>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Department *</label>
                                             <select
                                                 required
-                                                className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                                className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
                                                 value={jobData.department}
                                                 onChange={(e) => setJobData({ ...jobData, department: e.target.value })}
                                             >
@@ -342,10 +344,10 @@ const AdminPortal = () => {
                                             </select>
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700">Job Type *</label>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Job Type *</label>
                                             <select
                                                 required
-                                                className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                                className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
                                                 value={jobData.job_type}
                                                 onChange={(e) => setJobData({ ...jobData, job_type: e.target.value })}
                                             >
@@ -356,10 +358,10 @@ const AdminPortal = () => {
                                             </select>
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700">Location *</label>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Location *</label>
                                             <select
                                                 required
-                                                className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                                className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
                                                 value={jobData.location}
                                                 onChange={(e) => setJobData({ ...jobData, location: e.target.value })}
                                             >
@@ -369,31 +371,31 @@ const AdminPortal = () => {
                                             </select>
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700">Duration (Optional)</label>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Duration (Optional)</label>
                                             <input
                                                 type="text"
                                                 placeholder="e.g. 3 months"
-                                                className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                                className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
                                                 value={jobData.duration || ''}
                                                 onChange={(e) => setJobData({ ...jobData, duration: e.target.value })}
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700">Application Deadline</label>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Application Deadline</label>
                                             <input
                                                 type="datetime-local"
-                                                className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                                className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
                                                 value={jobData.deadline || ''}
                                                 onChange={(e) => setJobData({ ...jobData, deadline: e.target.value })}
                                             />
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700">Overview / Description *</label>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Overview / Description *</label>
                                         <textarea
                                             required
                                             rows={4}
-                                            className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                            className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
                                             value={jobData.description}
                                             onChange={(e) => setJobData({ ...jobData, description: e.target.value })}
                                         />
@@ -401,8 +403,8 @@ const AdminPortal = () => {
                                 </div>
 
                                 {/* Section 2: Detailed Requirements (Lists) */}
-                                <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm space-y-6">
-                                    <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Details & Requirements</h3>
+                                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-100 shadow-sm space-y-6">
+                                    <h3 className="text-lg font-medium text-gray-900 dark:text-white border-b pb-2">Details & Requirements</h3>
 
                                     {/* Helper for Lists */}
                                     {[
@@ -412,12 +414,12 @@ const AdminPortal = () => {
                                         { label: 'Tools & Technologies', field: 'tools' as keyof JobCreate },
                                     ].map((section) => (
                                         <div key={section.field}>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">{section.label}</label>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{section.label}</label>
                                             <div className="flex gap-2 mb-2">
                                                 <input
                                                     type="text"
                                                     id={`input-${section.field}`}
-                                                    className="flex-1 border border-gray-300 rounded-lg shadow-sm py-2 px-3 text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                                    className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 text-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 dark:text-white"
                                                     placeholder="Type and press Enter or Add"
                                                     onKeyDown={(e) => {
                                                         if (e.key === 'Enter') {
@@ -446,14 +448,14 @@ const AdminPortal = () => {
                                                             input.value = '';
                                                         }
                                                     }}
-                                                    className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none"
+                                                    className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 dark:text-indigo-300 bg-indigo-100 dark:bg-indigo-900/40 hover:bg-indigo-200 dark:hover:bg-indigo-900/60 focus:outline-none"
                                                 >
                                                     Add
                                                 </button>
                                             </div>
                                             <div className="flex flex-wrap gap-2">
                                                 {(jobData[section.field] as string[])?.map((item, idx) => (
-                                                    <span key={idx} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                                    <span key={idx} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
                                                         {item}
                                                         <button
                                                             type="button"
@@ -474,10 +476,10 @@ const AdminPortal = () => {
                                     ))}
 
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700">Minimum Qualifications</label>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Minimum Qualifications</label>
                                         <textarea
                                             rows={3}
-                                            className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                            className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
                                             value={jobData.min_qualifications || ''}
                                             onChange={(e) => setJobData({ ...jobData, min_qualifications: e.target.value })}
                                         />
@@ -505,7 +507,7 @@ const AdminPortal = () => {
                                             // 2. setTimeout to allow state update? No, that's flaky.
                                             // 3. Pass status to handlePostJob.
                                         }}
-                                        className="px-6 py-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 mr-auto"
+                                        className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 mr-auto"
                                     >
                                         Save as Draft
                                     </button>
@@ -526,26 +528,26 @@ const AdminPortal = () => {
                     {activeTab === 'profile' && (
                         <div className="p-8 max-w-xl mx-auto w-full overflow-y-auto space-y-8">
                             {/* Account Details */}
-                            <div className="bg-white p-6">
-                                <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                            <div className="bg-white dark:bg-gray-800 p-6">
+                                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
                                     <UserIcon className="mr-2" /> Account Details
                                 </h2>
                                 <form onSubmit={handleUpdateProfile} className="space-y-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700">Full Name</label>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Full Name</label>
                                         <input
                                             type="text"
-                                            className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                            className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
                                             value={profileData.full_name}
                                             onChange={(e) => setProfileData({ ...profileData, full_name: e.target.value })}
                                             placeholder="Your Full Name"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700">Email Address</label>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email Address</label>
                                         <input
                                             type="email"
-                                            className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                            className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
                                             value={profileData.email}
                                             onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
                                         />
@@ -557,27 +559,27 @@ const AdminPortal = () => {
                             </div>
 
                             {/* Change Password */}
-                            <div className="bg-white p-6 border-t border-gray-100">
-                                <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                            <div className="bg-white dark:bg-gray-800 p-6 border-t border-gray-100">
+                                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
                                     <Lock className="mr-2" /> Security
                                 </h2>
                                 <form onSubmit={handleChangePassword} className="space-y-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700">Current Password</label>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Current Password</label>
                                         <input
                                             type="password"
                                             required
-                                            className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                            className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
                                             value={passwordData.current_password}
                                             onChange={(e) => setPasswordData({ ...passwordData, current_password: e.target.value })}
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700">New Password</label>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">New Password</label>
                                         <input
                                             type="password"
                                             required
-                                            className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                            className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
                                             value={passwordData.new_password}
                                             onChange={(e) => setPasswordData({ ...passwordData, new_password: e.target.value })}
                                         />
@@ -594,9 +596,9 @@ const AdminPortal = () => {
                         // DASHBOARD VIEW
                         <div className="flex flex-col h-full">
                             {/* Header */}
-                            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                            <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900">
                                 <div>
-                                    <h2 className="text-lg font-bold text-gray-900 flex items-center">
+                                    <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center">
                                         {selectedJob ? selectedJob.title : 'Select a Job'}
                                         {selectedJob && (
                                             <button
@@ -617,13 +619,13 @@ const AdminPortal = () => {
 
                             {/* Filter Bar */}
                             {selectedJob && (
-                                <div className="px-6 py-3 border-b border-gray-100 flex flex-wrap gap-4 items-center bg-white shadow-sm z-10">
+                                <div className="px-6 py-3 border-b border-gray-100 dark:border-gray-700 flex flex-wrap gap-4 items-center bg-white dark:bg-gray-800 shadow-sm z-10">
                                     <div className="flex items-center text-gray-500 text-xs font-bold uppercase tracking-wide">
                                         <Filter size={14} className="mr-2" /> Filters
                                     </div>
 
                                     <select
-                                        className="border-gray-200 rounded text-sm py-1 pl-2 pr-8 focus:ring-indigo-500 focus:border-indigo-500"
+                                        className="border-gray-200 dark:border-gray-600 rounded text-sm py-1 pl-2 pr-8 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 dark:text-white"
                                         value={filters.status}
                                         onChange={(e) => setFilters({ ...filters, status: e.target.value })}
                                     >
@@ -635,11 +637,11 @@ const AdminPortal = () => {
                                     </select>
 
                                     <div className="flex items-center space-x-2">
-                                        <label className="text-xs text-gray-500">Min Score:</label>
+                                        <label className="text-xs text-gray-500 dark:text-gray-400">Min Score:</label>
                                         <input
                                             type="number"
                                             min="0" max="100"
-                                            className="w-16 border-gray-200 rounded text-sm py-1 px-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                            className="w-16 border-gray-200 dark:border-gray-600 rounded text-sm py-1 px-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 dark:text-white"
                                             placeholder="0"
                                             value={filters.min_score}
                                             onChange={(e) => setFilters({ ...filters, min_score: e.target.value })}
@@ -649,7 +651,7 @@ const AdminPortal = () => {
                                     <div className="flex-1"></div>
 
                                     <select
-                                        className="border-gray-200 rounded text-sm py-1 pl-2 pr-8 focus:ring-indigo-500 focus:border-indigo-500"
+                                        className="border-gray-200 dark:border-gray-600 rounded text-sm py-1 pl-2 pr-8 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 dark:text-white"
                                         value={filters.sort_by}
                                         onChange={(e) => setFilters({ ...filters, sort_by: e.target.value })}
                                     >
@@ -676,17 +678,17 @@ const AdminPortal = () => {
                                     </div>
                                 ) : (
                                     <table className="min-w-full divide-y divide-gray-200">
-                                        <thead className="bg-gray-50 sticky top-0 z-10">
+                                        <thead className="bg-gray-50 dark:bg-gray-700/50 sticky top-0 z-10">
                                             <tr>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Candidate</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ATS Score</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CV</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applied On</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Candidate</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">ATS Score</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">CV</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Applied On</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="bg-white divide-y divide-gray-200">
+                                        <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                                             {applications.map((app) => (
                                                 <tr key={app.id} className="hover:bg-gray-50 transition-colors">
                                                     <td className="px-6 py-4 whitespace-nowrap">
@@ -695,10 +697,10 @@ const AdminPortal = () => {
                                                                 {app.student?.full_name?.charAt(0) || 'U'}
                                                             </div>
                                                             <div className="ml-4">
-                                                                <div className="text-sm font-medium text-gray-900">
+                                                                <div className="text-sm font-medium text-gray-900 dark:text-white">
                                                                     {app.student?.full_name || `User #${app.student_id}`}
                                                                 </div>
-                                                                <div className="text-sm text-gray-500">
+                                                                <div className="text-sm text-gray-500 dark:text-gray-400">
                                                                     {app.student?.email}
                                                                 </div>
                                                             </div>
@@ -713,7 +715,7 @@ const AdminPortal = () => {
                                                             {app.cv_snapshot_path || 'View CV'}
                                                         </a>
                                                     </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                                         {new Date(app.created_at).toLocaleDateString()}
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
