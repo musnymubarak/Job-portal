@@ -49,13 +49,15 @@ def create_users_and_jobs(db):
     for a in admins: db.refresh(a)
     print(f"Created {len(admins)} admins.")
 
-    # Create 100 Students
+    # Create 100 Students (2020ict001 - 2020ict100)
     students = []
     for i in range(1, 101):
+        student_id = f"2020ict{i:03d}"
+        email = f"{student_id}@stu.vau.ac.lk"
         student = User(
-            email=f"student{i}@example.com",
+            email=email,
             hashed_password=pwd_hash,
-            full_name=f"Student User {i}",
+            full_name=f"Student {student_id}",
             role=UserRole.STUDENT,
             is_active=True
         )

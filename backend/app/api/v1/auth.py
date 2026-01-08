@@ -21,11 +21,28 @@ def login_access_token(
     OAuth2 compatible token login, get an access token for future requests
     """
     try:
+        print(f"DEBUG LOGIN Attempt: username='{form_data.username}'")
         user = db.query(User).filter(User.email == form_data.username).first()
-        if not user or not security.verify_password(form_data.password, user.hashed_password):
+        
+        if not user:
+            print(f"DEBUG LOGIN FAIL: User '{form_data.username}' not found")
             raise HTTPException(status_code=400, detail="Incorrect email or password")
-        elif not user.is_active:
+            
+        if not security.verify_password(form_data.password, user.hashed_password):
+            print(f"DEBUG LOGIN FAIL: Password mismatch for user '{form_data.username}'")
+            raise HTTPException(status_code=400, detail="Incorrect email or password")
+            
+        if not user.is_active:
+            print(f"DEBUG LOGIN FAIL: User '{form_data.username}' inactive")
             raise HTTPException(status_code=400, detail="Inactive user")
+        
+        # Enforce Student Domain Restriction
+        if user.role == "student" and not user.email.endswith("@stu.vau.ac.lk"):
+            raise HTTPException(
+                status_code=403,
+                detail="Access Denied: Only @stu.vau.ac.lk email addresses are allowed for student login."
+            )
+
         access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         return {
             "access_token": security.create_access_token(

@@ -80,8 +80,9 @@ npm run dev
 - **Password**: `password123`
 
 ### Student
-- **Email**: `student1@example.com`
+- **Email**: `2020ict001@stu.vau.ac.lk`
 - **Password**: `password123`
+*(Accounts available from 2020ict001 to 2020ict100)*
 
 ## 🛡️ Security
 - **JWT Authentication**: Secure token-based access with auto-expiration.
