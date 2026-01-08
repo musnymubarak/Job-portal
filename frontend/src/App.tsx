@@ -1,6 +1,8 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import Login from './pages/Login';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import JobDetails from './pages/JobDetails';
 import StudentPortal from './pages/StudentPortal';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -27,6 +29,8 @@ function App() {
             <div className="flex-grow">
               <Routes>
                 <Route path="/login" element={<Login />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
 
                 <Route path="/dashboard" element={
                   <ProtectedRoute>

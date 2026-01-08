@@ -26,3 +26,5 @@ class User(Base):
     reviews = relationship("Review", back_populates="mentor")
     activity_logs = relationship("ActivityLog", back_populates="user")
     notifications = relationship("Notification", back_populates="recipient")
+    reset_tokens = relationship("PasswordResetToken", back_populates="user")
+
