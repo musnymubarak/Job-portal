@@ -3,10 +3,11 @@ import { useAuth } from '../context/AuthContext';
 import { createJob, updateJob, getAdminApplications, getJobs, type Job, type JobCreate, type Application } from '../api/jobs';
 import { updateApplicationStatus } from '../api/applications';
 import { updateProfile, changePassword } from '../api/users';
-import { LogOut, Plus, Briefcase, FileText, BarChart2, User as UserIcon, Filter, Lock, Check, X, Edit } from 'lucide-react';
+import { LogOut, Plus, Briefcase, FileText, BarChart2, User as UserIcon, Filter, Lock, Check, X, Edit, Loader } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ThemeToggle from '../components/ThemeToggle';
 import { useWebSocket } from '../context';
+import { getStudentCVUrl } from '../api/cv';
 
 const AdminPortal = () => {
     const { user, logout, setUser } = useAuth();
@@ -18,6 +19,23 @@ const AdminPortal = () => {
     const [selectedJob, setSelectedJob] = useState<Job | null>(null);
     const [applications, setApplications] = useState<Application[]>([]);
     const [loadingApps, setLoadingApps] = useState(false);
+    const [downloadingCvId, setDownloadingCvId] = useState<number | null>(null);
+
+    // ... (skip down to handleViewCV)
+
+    const handleViewCV = async (studentId: number) => {
+        setDownloadingCvId(studentId);
+        try {
+            const url = await getStudentCVUrl(studentId);
+            window.open(url, '_blank');
+        } catch (error: any) {
+            console.error("View CV Error:", error);
+            const msg = error.response?.data?.detail || "Failed to load CV (File might be missing)";
+            toast.error(msg);
+        } finally {
+            setDownloadingCvId(null);
+        }
+    };
 
     // Filter State
     const [filters, setFilters] = useState({
@@ -742,10 +760,18 @@ const AdminPortal = () => {
                                                                     {app.student?.full_name || `User #${app.student_id}`}
                                                                 </div>
                                                                 <div className="text-sm text-gray-500 dark:text-gray-400">
-                                                                    <a href="#" className="flex items-center hover:text-indigo-600">
-                                                                        <FileText size={12} className="mr-1" />
+                                                                    <button
+                                                                        onClick={() => handleViewCV(app.student_id)}
+                                                                        disabled={downloadingCvId === app.student_id}
+                                                                        className="flex items-center hover:text-indigo-600 disabled:opacity-50"
+                                                                    >
+                                                                        {downloadingCvId === app.student_id ? (
+                                                                            <Loader size={12} className="mr-1 animate-spin" />
+                                                                        ) : (
+                                                                            <FileText size={12} className="mr-1" />
+                                                                        )}
                                                                         View CV
-                                                                    </a>
+                                                                    </button>
                                                                 </div>
                                                             </div>
                                                         </div>

@@ -22,6 +22,10 @@ class Settings(BaseSettings):
     # Frontend
     FRONTEND_URL: str = "http://localhost:5173"
 
+    # Supabase
+    SUPABASE_URL: str
+    SUPABASE_KEY: str
+
     class Config:
         env_file = ".env"
         case_sensitive = True

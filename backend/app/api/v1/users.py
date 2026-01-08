@@ -5,14 +5,8 @@ from app.api import deps
 from app.models.user import User
 from app.schemas import user as user_schemas
 from app.core.security import verify_password, get_password_hash
-import shutil
-import os
-from pathlib import Path
 
 router = APIRouter()
-
-UPLOAD_DIR = Path("uploads")
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 @router.get("/me", response_model=user_schemas.User)
 def read_user_me(
@@ -30,20 +24,26 @@ async def upload_cv(
     current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
-    Upload CV (PDF only).
+    Upload CV to Supabase Storage (PDF only).
     """
     if file.content_type != "application/pdf":
         raise HTTPException(status_code=400, detail="Only PDF files are allowed")
     
     # Generate safe filename: using user ID to avoid collisions/overwriting
     filename = f"user_{current_user.id}_cv.pdf"
-    file_path = UPLOAD_DIR / filename
     
     try:
-        with file_path.open("wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+        from app.utils.supabase import supabase
+        contents = await file.read()
+        # Upsert ensures we overwrite if it exists
+        supabase.storage.from_("cvs").upload(
+            path=filename, 
+            file=contents, 
+            file_options={"content-type": "application/pdf", "upsert": "true"}
+        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Could not save file")
+        print(f"Supabase Upload Error: {e}")
+        raise HTTPException(status_code=500, detail="Could not upload file to cloud storage")
     
     # Update user profile
     current_user.cv_filename = filename
