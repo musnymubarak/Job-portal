@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from app.api import deps
 from app.models.user import User, UserRole
 from app.models.job import Job
@@ -57,6 +57,7 @@ def apply_for_job(
     db: Session = Depends(deps.get_db),
     job_id: int,
     current_user: User = Depends(deps.get_current_active_user),
+    background_tasks: BackgroundTasks,
 ) -> Any:
     """
     Apply for a job (Student only).
@@ -101,6 +102,20 @@ def apply_for_job(
     db.add(application)
     db.commit()
     db.refresh(application)
+    
+    # Broadcast to Admin through WebSockets
+    from app.core.manager import manager
+    msg = {
+        "event": "application_submitted",
+        "data": {
+            "job_id": job_id,
+            "job_title": job.title,
+            "student_name": current_user.full_name,
+            "application_id": application.id
+        }
+    }
+    background_tasks.add_task(manager.broadcast, msg)
+    
     return application
 
 @router.get("/admin/list", response_model=List[application_schemas.Application])
@@ -163,6 +178,7 @@ def update_application_status(
     application_id: int,
     status_update: application_schemas.ApplicationUpdate,
     current_user: User = Depends(deps.get_current_active_user),
+    background_tasks: BackgroundTasks,
 ) -> Any:
     """
     Update application status (Admin only).
@@ -206,4 +222,20 @@ def update_application_status(
     
     db.commit()
     db.refresh(application)
+    
+    # Broadcast through WebSockets
+    from app.core.manager import manager
+    from fastapi.encoders import jsonable_encoder
+    
+    msg = {
+        "event": "status_updated",
+        "data": {
+            "application_id": application.id,
+            "status": application.status,
+            "job_id": application.job_id,
+            "student_id": application.student_id
+        }
+    }
+    background_tasks.add_task(manager.broadcast, msg)
+    
     return application

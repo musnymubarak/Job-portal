@@ -36,7 +36,7 @@ export interface Application {
 }
 
 export const getJobs = async (
-    filters?: { job_type?: string; department?: string; sort_by?: string }
+    filters?: { job_type?: string; department?: string; sort_by?: string; application_status?: string }
 ): Promise<Job[]> => {
     const response = await api.get('/api/v1/jobs/', { params: filters });
     return response.data;

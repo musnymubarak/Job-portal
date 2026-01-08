@@ -6,9 +6,11 @@ import { updateProfile, changePassword } from '../api/users';
 import { LogOut, Plus, Briefcase, FileText, BarChart2, User as UserIcon, Filter, Lock, Check, X, Edit } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ThemeToggle from '../components/ThemeToggle';
+import { useWebSocket } from '../context';
 
 const AdminPortal = () => {
     const { user, logout, setUser } = useAuth();
+    const { lastEvent } = useWebSocket();
     const [activeTab, setActiveTab] = useState<'dashboard' | 'post-job' | 'profile'>('dashboard');
 
     // Dashboard State
@@ -16,6 +18,18 @@ const AdminPortal = () => {
     const [selectedJob, setSelectedJob] = useState<Job | null>(null);
     const [applications, setApplications] = useState<Application[]>([]);
     const [loadingApps, setLoadingApps] = useState(false);
+
+    // WebSocket Listener
+    useEffect(() => {
+        if (!lastEvent) return;
+        if (lastEvent.event === 'application_submitted') {
+            const { job_id } = lastEvent.data;
+            // Refresh applications if we are viewing this job
+            if (selectedJob && selectedJob.id === job_id) {
+                fetchApplications(job_id);
+            }
+        }
+    }, [lastEvent, selectedJob]);
 
     // Filter State
     const [filters, setFilters] = useState({

@@ -1,5 +1,5 @@
 from typing import List, Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from app.api import deps
 from app.models.user import User, UserRole
@@ -14,6 +14,7 @@ def create_job(
     db: Session = Depends(deps.get_db),
     job_in: job_schemas.JobCreate,
     current_user: User = Depends(deps.get_current_active_user),
+    background_tasks: BackgroundTasks,
 ) -> Any:
     """
     Create new job posting (Admin only).
@@ -35,7 +36,9 @@ def create_job(
     # Broadcast Notification only if OPEN
     if job.status == JobStatus.OPEN:
         from app.models.notification import Notification
+        from app.core.manager import manager
         
+        # 1. Database Notifications
         students = db.query(User).filter(User.role == UserRole.STUDENT).all()
         notifications = []
         for student in students:
@@ -48,6 +51,17 @@ def create_job(
         if notifications:
             db.add_all(notifications)
             db.commit()
+
+        # 2. WebSocket Broadcast
+        # We need to serialize data properly. Pydantic models can be converted to dict.
+        # But 'created_at' is datetime, which json.dumps fails on unless handled.
+        # FastAPI's jsonable_encoder handles this.
+        from fastapi.encoders import jsonable_encoder
+        ws_message = {
+            "event": "job_posted",
+            "data": jsonable_encoder(job)
+        }
+        background_tasks.add_task(manager.broadcast, ws_message)
         
     return job
 
@@ -90,20 +104,35 @@ def read_jobs(
     job_type: Optional[str] = None,
     department: Optional[str] = None,
     status: Optional[str] = None,
+    application_status: Optional[str] = None, # applied, not_applied
     sort_by: Optional[str] = "newest", # newest, oldest
     current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
     Retrieve jobs.
-    Students: Only see 'Open' jobs.
+    Students: Only see 'Open' jobs. Can filter by 'applied' or 'not_applied'.
     Admins: Can see all (Drafts, Closed), and filter by status.
     """
     query = db.query(Job)
 
     # Visibility Rules
-    # Visibility Rules
     if current_user.role == UserRole.STUDENT:
         query = query.filter(Job.status == JobStatus.OPEN)
+        
+        # Filter by Application Status (Student specific)
+        if application_status:
+            from app.models.application import Application
+            # Outer join to check for existence of application by this user
+            query = query.outerjoin(
+                Application, 
+                (Job.id == Application.job_id) & (Application.student_id == current_user.id)
+            )
+            
+            if application_status == "applied":
+                query = query.filter(Application.id.isnot(None))
+            elif application_status == "not_applied":
+                query = query.filter(Application.id.is_(None))
+                
     elif current_user.role == UserRole.ADMIN:
         query = query.filter(Job.admin_id == current_user.id) # Only show own jobs
         if status:

@@ -7,10 +7,25 @@ import { getNotifications, markAsRead, markAllAsRead, type Notification } from '
 import { LogOut, Upload, User as UserIcon, Briefcase, FileText, CheckCircle, Filter, Bell } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ThemeToggle from '../components/ThemeToggle';
+import { useWebSocket } from '../context/WebSocketContext';
 
 const StudentPortal = () => {
     const { user, logout, setUser } = useAuth();
+    const { lastEvent } = useWebSocket();
     const [activeTab, setActiveTab] = useState<'jobs' | 'applications' | 'profile'>('jobs');
+
+    // WebSocket Listener: Auto-refresh data on events
+    useEffect(() => {
+        if (!lastEvent) return;
+
+        if (lastEvent.event === 'job_posted') {
+            fetchJobs();
+            // Optional: show a dot on jobs tab?
+        } else if (lastEvent.event === 'status_updated') {
+            fetchApplications();
+            fetchNotifications();
+        }
+    }, [lastEvent]);
 
     // Notifications State
     const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -25,7 +40,8 @@ const StudentPortal = () => {
     const [filters, setFilters] = useState({
         job_type: '',
         department: '',
-        sort_by: 'newest'
+        sort_by: 'newest',
+        application_status: ''
     });
 
     // Applications State
@@ -96,6 +112,7 @@ const StudentPortal = () => {
             const activeFilters: any = { ...filters };
             if (!activeFilters.job_type) delete activeFilters.job_type;
             if (!activeFilters.department) delete activeFilters.department;
+            if (!activeFilters.application_status) delete activeFilters.application_status;
 
             const data = await getJobs(activeFilters);
             setJobs(data);
@@ -313,6 +330,16 @@ const StudentPortal = () => {
                             </select>
 
                             <div className="flex-1"></div>
+
+                            <select
+                                className="border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 dark:text-white"
+                                value={filters.application_status}
+                                onChange={(e) => setFilters({ ...filters, application_status: e.target.value })}
+                            >
+                                <option value="">All Applications</option>
+                                <option value="applied">Applied</option>
+                                <option value="not_applied">Not Applied</option>
+                            </select>
 
                             <select
                                 className="border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 dark:text-white"

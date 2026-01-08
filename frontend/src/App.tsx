@@ -5,8 +5,8 @@ import JobDetails from './pages/JobDetails';
 import StudentPortal from './pages/StudentPortal';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
-
 import Footer from './components/Footer';
+import { WebSocketProvider } from './context/WebSocketContext';
 
 // Component to handle role-based redirect
 const RootRedirect = () => {
@@ -23,26 +23,28 @@ function App() {
       <div className="min-h-screen flex flex-col bg-gray-50">
         <Toaster position="top-right" />
         <AuthProvider>
-          <div className="flex-grow">
-            <Routes>
-              <Route path="/login" element={<Login />} />
+          <WebSocketProvider>
+            <div className="flex-grow">
+              <Routes>
+                <Route path="/login" element={<Login />} />
 
-              <Route path="/dashboard" element={
-                <ProtectedRoute>
-                  <StudentPortal />
-                </ProtectedRoute>
-              } />
+                <Route path="/dashboard" element={
+                  <ProtectedRoute>
+                    <StudentPortal />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/jobs/:id" element={
-                <ProtectedRoute>
-                  <JobDetails />
-                </ProtectedRoute>
-              } />
+                <Route path="/jobs/:id" element={
+                  <ProtectedRoute>
+                    <JobDetails />
+                  </ProtectedRoute>
+                } />
 
-              <Route path="/" element={<RootRedirect />} />
-            </Routes>
-          </div>
-          <Footer />
+                <Route path="/" element={<RootRedirect />} />
+              </Routes>
+            </div>
+            <Footer />
+          </WebSocketProvider>
         </AuthProvider>
       </div>
     </Router>
