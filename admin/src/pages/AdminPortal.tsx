@@ -1,4 +1,4 @@
-import { useState, useEffect, type FormEvent } from 'react';
+import { useState, useEffect, useRef, type FormEvent } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { createJob, updateJob, getAdminApplications, getJobs, type Job, type JobCreate, type Application } from '../api/jobs';
 import { updateApplicationStatus } from '../api/applications';
@@ -19,31 +19,26 @@ const AdminPortal = () => {
     const [applications, setApplications] = useState<Application[]>([]);
     const [loadingApps, setLoadingApps] = useState(false);
 
-    // WebSocket Listener
-    useEffect(() => {
-        if (!lastEvent) return;
-        if (lastEvent.event === 'application_submitted') {
-            const { job_id } = lastEvent.data;
-            // Refresh applications if we are viewing this job
-            if (selectedJob && selectedJob.id === job_id) {
-                fetchApplications(job_id);
-            }
-        }
-    }, [lastEvent, selectedJob]);
-
     // Filter State
     const [filters, setFilters] = useState({
         status: '',
         min_score: '',
         sort_by: 'date_desc'
     });
+    const [jobSearch, setJobSearch] = useState('');
 
-    // Form State (Job)
+    // Filtered Jobs for Sidebar
+    const filteredJobs = jobs.filter(job =>
+        job.title.toLowerCase().includes(jobSearch.toLowerCase()) ||
+        job.status.toLowerCase().includes(jobSearch.toLowerCase())
+    );
+
+    // Job Form State
     const [editingJobId, setEditingJobId] = useState<number | null>(null);
     const [jobData, setJobData] = useState<JobCreate>({
         title: '',
         description: '',
-        requirements: '', // We'll auto-fill this or ignore
+        requirements: '',
         job_type: '',
         department: '',
         location: 'Onsite',
@@ -52,12 +47,40 @@ const AdminPortal = () => {
         required_skills: [],
         preferred_skills: [],
         tools: [],
+        min_qualifications: ''
     });
     const [posting, setPosting] = useState(false);
 
     // Profile State
     const [profileData, setProfileData] = useState({ full_name: '', email: '' });
     const [passwordData, setPasswordData] = useState({ current_password: '', new_password: '' });
+
+    // UseRef for WebSocket
+    const processedEventTimestamp = useRef<number>(0);
+    useEffect(() => {
+        if (!lastEvent) return;
+
+        // Prevent processing the same event multiple times
+        if (lastEvent.timestamp <= processedEventTimestamp.current) return;
+        processedEventTimestamp.current = lastEvent.timestamp;
+
+        if (lastEvent.event === 'application_submitted') {
+            const { job_id } = lastEvent.data;
+            // Refresh if viewing All Jobs (null) OR the specific job for this application
+            if (!selectedJob || selectedJob.id === job_id) {
+                fetchApplications(selectedJob ? selectedJob.id : null);
+                toast.success("New Application Received!", { icon: '🔔' });
+            }
+        }
+
+        if (lastEvent.event === 'status_updated') {
+            const { application_id, status } = lastEvent.data;
+            // Update the application status in the local list immediately
+            setApplications(prevApps => prevApps.map(app =>
+                app.id === application_id ? { ...app, status } : app
+            ));
+        }
+    }, [lastEvent, selectedJob]);
 
     // Initial Load & Profile Sync
     useEffect(() => {
@@ -72,32 +95,22 @@ const AdminPortal = () => {
 
     // Fetch applications when a job is selected or filters change
     useEffect(() => {
-        if (selectedJob) {
-            fetchApplications(selectedJob.id);
-        } else {
-            setApplications([]);
-        }
+        fetchApplications(selectedJob ? selectedJob.id : null);
     }, [selectedJob, filters]);
 
     const fetchJobs = async () => {
         try {
             const data = await getJobs();
-            // Sort by newest first
             const sorted = data.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
             setJobs(sorted);
-            // Select first job by default if available and nothing selected
-            if (sorted.length > 0 && !selectedJob) {
-                setSelectedJob(sorted[0]);
-            }
         } catch (error) {
             console.error("Failed to load jobs", error);
         }
     };
 
-    const fetchApplications = async (jobId: number) => {
+    const fetchApplications = async (jobId: number | null) => {
         setLoadingApps(true);
         try {
-            // Clean filters
             const appFilters: any = { ...filters };
             if (!appFilters.status || appFilters.status === 'all') delete appFilters.status;
             if (!appFilters.min_score) delete appFilters.min_score;
@@ -138,7 +151,6 @@ const AdminPortal = () => {
         setPosting(true);
 
         try {
-            // Ensure requirements string is populated if empty (for backward compatibility if backend requires it)
             const finalData = {
                 ...jobData,
                 requirements: jobData.requirements || jobData.required_skills?.join(', ') || 'See details'
@@ -154,7 +166,8 @@ const AdminPortal = () => {
 
             setJobData({
                 title: '', description: '', requirements: '', job_type: '', department: '',
-                location: 'Onsite', status: 'Draft', responsibilities: [], required_skills: [], preferred_skills: [], tools: []
+                location: 'Onsite', status: 'Draft', responsibilities: [], required_skills: [], preferred_skills: [], tools: [],
+                min_qualifications: ''
             });
             setEditingJobId(null);
             fetchJobs(); // Refresh job list
@@ -228,7 +241,7 @@ const AdminPortal = () => {
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200 flex flex-col">
             {/* Navbar */}
-            <nav className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-100 dark:border-gray-700 z-10 transition-colors duration-200">
+            <nav className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-100 dark:border-gray-700 z-20 sticky top-0 transition-colors duration-200">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between h-16 items-center">
                         <div className="flex items-center">
@@ -269,7 +282,8 @@ const AdminPortal = () => {
                                 setEditingJobId(null); // Reset to create mode if clicked from sidebar
                                 setJobData({
                                     title: '', description: '', requirements: '', job_type: '', department: '',
-                                    location: 'Onsite', status: 'Draft', responsibilities: [], required_skills: [], preferred_skills: [], tools: []
+                                    location: 'Onsite', status: 'Draft', responsibilities: [], required_skills: [], preferred_skills: [], tools: [],
+                                    min_qualifications: ''
                                 });
                             }}
                             className={`flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'post-job'
@@ -294,15 +308,39 @@ const AdminPortal = () => {
                     {activeTab === 'dashboard' && (
                         <div className="flex-1 flex flex-col bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
                             <div className="p-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-                                <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Select Job</h3>
+                                <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Filter by Job</h3>
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        placeholder="Search jobs..."
+                                        className="w-full pl-8 pr-2 py-1.5 text-xs border border-gray-200 dark:border-gray-600 rounded-md focus:ring-1 focus:ring-indigo-500 bg-white dark:bg-gray-700 dark:text-white"
+                                        value={jobSearch}
+                                        onChange={(e) => setJobSearch(e.target.value)}
+                                    />
+                                    <div className="absolute left-2.5 top-2 pointer-events-none text-gray-400">
+                                        <Filter size={14} />
+                                    </div>
+                                </div>
                             </div>
                             <div className="flex-1 overflow-y-auto">
-                                {jobs.map(job => (
+                                {!jobSearch && (
+                                    <button
+                                        onClick={() => setSelectedJob(null)}
+                                        className={`w-full text-left px-4 py-3 border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${selectedJob === null ? 'bg-indigo-50 dark:bg-indigo-900/20 border-l-4 border-l-indigo-600 dark:border-l-indigo-500' : 'border-l-4 border-l-transparent'}`}
+                                    >
+                                        <p className={`text-sm font-medium ${selectedJob === null ? 'text-indigo-900 dark:text-indigo-300' : 'text-gray-900 dark:text-white'}`}>
+                                            All Jobs
+                                        </p>
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            View all applications
+                                        </p>
+                                    </button>
+                                )}
+                                {filteredJobs.map(job => (
                                     <button
                                         key={job.id}
                                         onClick={() => setSelectedJob(job)}
-                                        className={`w-full text-left px-4 py-3 border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${selectedJob?.id === job.id ? 'bg-indigo-50 dark:bg-indigo-900/20 border-l-4 border-l-indigo-600 dark:border-l-indigo-500' : 'border-l-4 border-l-transparent'
-                                            }`}
+                                        className={`w-full text-left px-4 py-3 border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${selectedJob?.id === job.id ? 'bg-indigo-50 dark:bg-indigo-900/20 border-l-4 border-l-indigo-600 dark:border-l-indigo-500' : 'border-l-4 border-l-transparent'}`}
                                     >
                                         <p className={`text-sm font-medium ${selectedJob?.id === job.id ? 'text-indigo-900 dark:text-indigo-300' : 'text-gray-900 dark:text-white'}`}>
                                             {job.title}
@@ -312,7 +350,7 @@ const AdminPortal = () => {
                                         </p>
                                     </button>
                                 ))}
-                                {jobs.length === 0 && <div className="p-4 text-sm text-gray-400 text-center">No jobs found</div>}
+                                {filteredJobs.length === 0 && <div className="p-4 text-sm text-gray-400 text-center">No jobs match search</div>}
                             </div>
                         </div>
                     )}
@@ -512,14 +550,6 @@ const AdminPortal = () => {
                                         type="button"
                                         onClick={() => {
                                             setJobData({ ...jobData, status: 'Draft' });
-                                            // Handle submit manually since type=button
-                                            // Actually, we can just set state then submit? 
-                                            // Better: add a hidden status input or handle in submit.
-                                            // Let's modify handlePostJob to accept status override or check state.
-                                            // Simplest: 
-                                            // 1. setJobData status
-                                            // 2. setTimeout to allow state update? No, that's flaky.
-                                            // 3. Pass status to handlePostJob.
                                         }}
                                         className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 mr-auto"
                                     >
@@ -613,7 +643,7 @@ const AdminPortal = () => {
                             <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900">
                                 <div>
                                     <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center">
-                                        {selectedJob ? selectedJob.title : 'Select a Job'}
+                                        {selectedJob ? selectedJob.title : 'All Applications'}
                                         {selectedJob && (
                                             <button
                                                 onClick={() => handleEditJob(selectedJob)}
@@ -624,7 +654,9 @@ const AdminPortal = () => {
                                             </button>
                                         )}
                                     </h2>
-                                    {selectedJob && <p className="text-sm text-gray-500">Managing Applications • {selectedJob.status}</p>}
+                                    <p className="text-sm text-gray-500">
+                                        {selectedJob ? `Managing Applications • ${selectedJob.status}` : 'Overview of all candidates'}
+                                    </p>
                                 </div>
                                 <div className="text-sm text-gray-500">
                                     {applications.length} Applicants
@@ -632,72 +664,67 @@ const AdminPortal = () => {
                             </div>
 
                             {/* Filter Bar */}
-                            {selectedJob && (
-                                <div className="px-6 py-3 border-b border-gray-100 dark:border-gray-700 flex flex-wrap gap-4 items-center bg-white dark:bg-gray-800 shadow-sm z-10">
-                                    <div className="flex items-center text-gray-500 text-xs font-bold uppercase tracking-wide">
-                                        <Filter size={14} className="mr-2" /> Filters
-                                    </div>
-
-                                    <select
-                                        className="border-gray-200 dark:border-gray-600 rounded text-sm py-1 pl-2 pr-8 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 dark:text-white"
-                                        value={filters.status}
-                                        onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                                    >
-                                        <option value="all">All Statuses</option>
-                                        <option value="applied">Applied</option>
-                                        <option value="reviewed">Reviewed</option>
-                                        <option value="accepted">Accepted</option>
-                                        <option value="rejected">Rejected</option>
-                                    </select>
-
-                                    <div className="flex items-center space-x-2">
-                                        <label className="text-xs text-gray-500 dark:text-gray-400">Min Score:</label>
-                                        <input
-                                            type="number"
-                                            min="0" max="100"
-                                            className="w-16 border-gray-200 dark:border-gray-600 rounded text-sm py-1 px-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 dark:text-white"
-                                            placeholder="0"
-                                            value={filters.min_score}
-                                            onChange={(e) => setFilters({ ...filters, min_score: e.target.value })}
-                                        />
-                                    </div>
-
-                                    <div className="flex-1"></div>
-
-                                    <select
-                                        className="border-gray-200 dark:border-gray-600 rounded text-sm py-1 pl-2 pr-8 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 dark:text-white"
-                                        value={filters.sort_by}
-                                        onChange={(e) => setFilters({ ...filters, sort_by: e.target.value })}
-                                    >
-                                        <option value="date_desc">Newest First</option>
-                                        <option value="date_asc">Oldest First</option>
-                                        <option value="score_desc">Highest Score</option>
-                                    </select>
+                            <div className="px-6 py-3 border-b border-gray-100 dark:border-gray-700 flex flex-wrap gap-4 items-center bg-white dark:bg-gray-800 shadow-sm z-10">
+                                <div className="flex items-center text-gray-500 text-xs font-bold uppercase tracking-wide">
+                                    <Filter size={14} className="mr-2" /> Filters
                                 </div>
-                            )}
+
+                                <select
+                                    className="border-gray-200 dark:border-gray-600 rounded text-sm py-1 pl-2 pr-8 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 dark:text-white"
+                                    value={filters.status}
+                                    onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                                >
+                                    <option value="all">All Statuses</option>
+                                    <option value="applied">Applied</option>
+                                    <option value="reviewed">Reviewed</option>
+                                    <option value="accepted">Accepted</option>
+                                    <option value="rejected">Rejected</option>
+                                </select>
+
+                                <div className="flex items-center space-x-2">
+                                    <label className="text-xs text-gray-500 dark:text-gray-400">Min Score:</label>
+                                    <input
+                                        type="number"
+                                        min="0" max="100"
+                                        className="w-16 border-gray-200 dark:border-gray-600 rounded text-sm py-1 px-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 dark:text-white"
+                                        placeholder="0"
+                                        value={filters.min_score}
+                                        onChange={(e) => setFilters({ ...filters, min_score: e.target.value })}
+                                    />
+                                </div>
+
+                                <div className="flex-1"></div>
+
+                                <select
+                                    className="border-gray-200 dark:border-gray-600 rounded text-sm py-1 pl-2 pr-8 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 dark:text-white"
+                                    value={filters.sort_by}
+                                    onChange={(e) => setFilters({ ...filters, sort_by: e.target.value })}
+                                >
+                                    <option value="date_desc">Newest First</option>
+                                    <option value="date_asc">Oldest First</option>
+                                    <option value="score_desc">Highest Score</option>
+                                </select>
+                            </div>
 
                             {/* Table Area */}
                             <div className="flex-1 overflow-auto">
-                                {!selectedJob ? (
-                                    <div className="flex flex-col items-center justify-center h-full text-gray-400">
-                                        <Briefcase size={48} className="mb-4 opacity-20" />
-                                        <p>Select a job from the sidebar to view applications</p>
-                                    </div>
-                                ) : loadingApps ? (
+                                {loadingApps ? (
                                     <div className="flex items-center justify-center h-full text-gray-500">Loading candidates...</div>
                                 ) : applications.length === 0 ? (
                                     <div className="flex flex-col items-center justify-center h-full text-gray-400">
                                         <UserIcon size={48} className="mb-4 opacity-20" />
-                                        <p>No applications match your criteria.</p>
+                                        <p>No applications found.</p>
                                     </div>
                                 ) : (
                                     <table className="min-w-full divide-y divide-gray-200">
                                         <thead className="bg-gray-50 dark:bg-gray-700/50 sticky top-0 z-10">
                                             <tr>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Candidate</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">ATS Score</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">CV</th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Applied On</th>
+                                                {!selectedJob && (
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Job Title</th>
+                                                )}
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">ATS Score</th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
                                                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
                                             </tr>
@@ -715,22 +742,24 @@ const AdminPortal = () => {
                                                                     {app.student?.full_name || `User #${app.student_id}`}
                                                                 </div>
                                                                 <div className="text-sm text-gray-500 dark:text-gray-400">
-                                                                    {app.student?.email}
+                                                                    <a href="#" className="flex items-center hover:text-indigo-600">
+                                                                        <FileText size={12} className="mr-1" />
+                                                                        View CV
+                                                                    </a>
                                                                 </div>
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                                        <span className={getScoreColor(app.ats_score)}>{app.ats_score}%</span>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-indigo-600 hover:text-indigo-900">
-                                                        <a href="#" className="flex items-center group">
-                                                            <FileText size={16} className="mr-1 group-hover:scale-110 transition-transform" />
-                                                            {app.cv_snapshot_path || 'View CV'}
-                                                        </a>
-                                                    </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                                         {new Date(app.created_at).toLocaleDateString()}
+                                                    </td>
+                                                    {!selectedJob && (
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300 font-medium">
+                                                            {app.job?.title || `#${app.job_id}`}
+                                                        </td>
+                                                    )}
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                        <span className={getScoreColor(app.ats_score)}>{app.ats_score}%</span>
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full uppercase ${app.status === 'accepted' ? 'bg-green-100 text-green-800' :

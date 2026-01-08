@@ -7,6 +7,8 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 
 import Footer from './components/Footer';
 
+import { WebSocketProvider } from './context/WebSocketContext';
+
 // Component to handle role-based redirect for Admin
 const RootRedirect = () => {
   const { user, isAuthenticated, loading } = useAuth();
@@ -16,7 +18,7 @@ const RootRedirect = () => {
   return <div className="p-8 text-center text-red-600 font-bold">Access Denied: Admins Only</div>;
 };
 
-import { WebSocketProvider } from './context/WebSocketContext';
+
 
 // ...
 

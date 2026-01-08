@@ -53,6 +53,7 @@ export interface Application {
     created_at: string;
     student?: UserSummary; // Now included from backend
     cv_snapshot_path?: string;
+    job?: { title: string }; // Assuming backend joins Job
 }
 
 export const getJobs = async (filters?: { status?: string }): Promise<Job[]> => {
@@ -76,10 +77,13 @@ export const applyForJob = async (jobId: number): Promise<Application> => {
 };
 
 export const getAdminApplications = async (
-    jobId?: number,
+    jobId?: number | null,
     filters?: { status?: string; min_score?: number; sort_by?: string }
 ): Promise<Application[]> => {
-    const params = { job_id: jobId, ...filters };
+    // If jobId is provided, use it; otherwise don't send it or send empty
+    const params: any = { ...filters };
+    if (jobId) params.job_id = jobId;
+
     const response = await api.get('/api/v1/applications/admin/list', { params });
     return response.data;
 };

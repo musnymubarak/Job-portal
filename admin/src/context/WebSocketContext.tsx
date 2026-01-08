@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { useAuth } from './AuthContext';
-import { toast } from 'react-hot-toast';
 
 interface WebSocketContextType {
     socket: WebSocket | null;
@@ -47,11 +46,6 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                     data: message.data,
                     timestamp: Date.now()
                 });
-
-                // Toast Notifications for Admin
-                if (message.event === 'application_submitted') {
-                    toast('New Application Received!', { icon: '📝' });
-                }
 
             } catch (error) {
                 console.error('Error parsing WS message:', error);
