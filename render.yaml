@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: internship-platform
+    env: docker
+    plan: free
+    region: ohio
+    branch: main
+    repo: https://github.com/YOUR_USERNAME/YOUR_REPO
+    envVars:
+      - key: PORT
+        value: 80
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true

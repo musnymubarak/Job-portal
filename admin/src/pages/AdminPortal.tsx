@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, type FormEvent } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { createJob, updateJob, getAdminApplications, getJobs, type Job, type JobCreate, type Application } from '../api/jobs';
+import { createJob, updateJob, getAdminApplications, getJobs, extractJobDetails, type Job, type JobCreate, type Application } from '../api/jobs';
 import { updateApplicationStatus } from '../api/applications';
 import { updateProfile, changePassword } from '../api/users';
-import { LogOut, Plus, Briefcase, FileText, BarChart2, User as UserIcon, Filter, Lock, Check, X, Edit, Loader, Menu } from 'lucide-react';
+import { LogOut, Plus, Briefcase, FileText, BarChart2, User as UserIcon, Filter, Lock, Check, X, Edit, Loader, Menu, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ThemeToggle from '../components/ThemeToggle';
 import { useWebSocket } from '../context';
@@ -26,7 +26,31 @@ const AdminPortal = () => {
     const [downloadingCvId, setDownloadingCvId] = useState<number | null>(null);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-    // ... (skip down to handleViewCV)
+
+    // Autofill State
+    const [autofillUrl, setAutofillUrl] = useState('');
+    const [autofillLoading, setAutofillLoading] = useState(false);
+
+    const handleAutofill = async () => {
+        if (!autofillUrl) return;
+        setAutofillLoading(true);
+        try {
+            const extracted = await extractJobDetails(autofillUrl);
+            setJobData(prev => ({
+                ...prev,
+                title: extracted.title || prev.title,
+                description: extracted.description || prev.description,
+                location: extracted.location || prev.location,
+                // We could map others if available
+            }));
+            toast.success("Job details autofilled!");
+        } catch (error) {
+            console.error("Autofill error:", error);
+            toast.error("Failed to fetch job details. Check URL.");
+        } finally {
+            setAutofillLoading(false);
+        }
+    };
 
     const handleViewCV = async (studentId: number) => {
         setDownloadingCvId(studentId);
@@ -507,6 +531,43 @@ const AdminPortal = () => {
                     {activeTab === 'post-job' && (
                         <div className="p-8 max-w-4xl mx-auto w-full overflow-y-auto pb-20">
                             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">{editingJobId ? 'Edit Job Posting' : 'Create New Job Posting'}</h2>
+
+                            {/* Auto-Fill Section (Only for new jobs) */}
+                            {!editingJobId && (
+                                <div className="bg-indigo-50 dark:bg-indigo-900/10 p-6 rounded-lg border border-indigo-100 dark:border-indigo-800 mb-8">
+                                    <h3 className="text-lg font-medium text-indigo-900 dark:text-indigo-300 mb-4 flex items-center">
+                                        <Sparkles size={20} className="mr-2" /> Auto-Fill Data
+                                    </h3>
+                                    <div className="flex gap-4">
+                                        <input
+                                            type="url"
+                                            placeholder="Paste job posting URL (e.g. LinkedIn, Company Page)..."
+                                            className="flex-1 block w-full border border-indigo-200 dark:border-indigo-800 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                                            value={autofillUrl}
+                                            onChange={(e) => setAutofillUrl(e.target.value)}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={handleAutofill}
+                                            disabled={autofillLoading || !autofillUrl}
+                                            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {autofillLoading ? (
+                                                <>
+                                                    <Loader size={16} className="animate-spin mr-2" />
+                                                    Fetching...
+                                                </>
+                                            ) : (
+                                                'Fetch'
+                                            )}
+                                        </button>
+                                    </div>
+                                    <p className="mt-2 text-xs text-indigo-500 dark:text-indigo-400">
+                                        We'll try to extract title, company, location, and description from the link.
+                                    </p>
+                                </div>
+                            )}
+
                             <form onSubmit={handlePostJob} className="space-y-8">
 
                                 {/* Section 1: Basic Info */}

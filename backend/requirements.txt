@@ -10,4 +10,7 @@ passlib[bcrypt]
 python-multipart
 pdfminer.six
 
+
 supabase
+beautifulsoup4
+requests

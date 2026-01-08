@@ -66,3 +66,8 @@ export const getMyApplications = async (): Promise<Application[]> => {
     const response = await api.get('/api/v1/applications/my-applications');
     return response.data;
 };
+
+export const extractJobDetails = async (url: string): Promise<Partial<Job>> => {
+    const response = await api.post('/api/v1/jobs/extract', { url });
+    return response.data;
+};

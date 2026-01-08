@@ -5,6 +5,7 @@ from app.api import deps
 from app.models.user import User, UserRole
 from app.models.job import Job, JobStatus
 from app.schemas import job as job_schemas
+from pydantic import BaseModel
 
 router = APIRouter()
 
@@ -64,6 +65,33 @@ def create_job(
         background_tasks.add_task(manager.broadcast, ws_message)
         
     return job
+
+class UrlInput(BaseModel):
+    url: str
+
+@router.post("/extract")
+def extract_job_details(
+    url_in: UrlInput,
+    current_user: User = Depends(deps.get_current_active_user),
+) -> Any:
+    """
+    Extract job details from a URL (Admin only).
+    """
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    try:
+        from app.services.scraper import scrape_job_details
+        data = scrape_job_details(url_in.url)
+        return data
+    except ImportError:
+        raise HTTPException(
+            status_code=500, 
+            detail="Scraper dependencies missing. Please install beautifulsoup4 and requests."
+        )
+    except Exception as e:
+        print(f"Extraction Error: {e}")
+        raise HTTPException(status_code=400, detail=f"Failed to extract job details: {str(e)}")
 
 @router.put("/{job_id}", response_model=job_schemas.Job)
 def update_job(
