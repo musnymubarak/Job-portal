@@ -5,6 +5,8 @@ import AdminPortal from './pages/AdminPortal';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
+import Footer from './components/Footer';
+
 // Component to handle role-based redirect for Admin
 const RootRedirect = () => {
   const { user, isAuthenticated, loading } = useAuth();
@@ -17,23 +19,28 @@ const RootRedirect = () => {
 function App() {
   return (
     <Router>
-      <Toaster position="top-right" />
-      <AuthProvider>
-        <Routes>
-          <Route path="/login" element={<Login />} />
+      <div className="min-h-screen flex flex-col bg-gray-50">
+        <Toaster position="top-right" />
+        <AuthProvider>
+          <div className="flex-grow">
+            <Routes>
+              <Route path="/login" element={<Login />} />
 
-          <Route path="/dashboard" element={
-            <ProtectedRoute>
-              <AdminPortal />
-            </ProtectedRoute>
-          } />
+              <Route path="/dashboard" element={
+                <ProtectedRoute>
+                  <AdminPortal />
+                </ProtectedRoute>
+              } />
 
-          {/* Fallback for admin route if user tries to type it */}
-          <Route path="/admin" element={<Navigate to="/dashboard" replace />} />
+              {/* Fallback for admin route if user tries to type it */}
+              <Route path="/admin" element={<Navigate to="/dashboard" replace />} />
 
-          <Route path="/" element={<RootRedirect />} />
-        </Routes>
-      </AuthProvider>
+              <Route path="/" element={<RootRedirect />} />
+            </Routes>
+          </div>
+          <Footer />
+        </AuthProvider>
+      </div>
     </Router>
   );
 }

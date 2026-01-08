@@ -6,6 +6,8 @@ import StudentPortal from './pages/StudentPortal';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
+import Footer from './components/Footer';
+
 // Component to handle role-based redirect
 const RootRedirect = () => {
   const { user, isAuthenticated, loading } = useAuth();
@@ -18,26 +20,31 @@ const RootRedirect = () => {
 function App() {
   return (
     <Router>
-      <Toaster position="top-right" />
-      <AuthProvider>
-        <Routes>
-          <Route path="/login" element={<Login />} />
+      <div className="min-h-screen flex flex-col bg-gray-50">
+        <Toaster position="top-right" />
+        <AuthProvider>
+          <div className="flex-grow">
+            <Routes>
+              <Route path="/login" element={<Login />} />
 
-          <Route path="/dashboard" element={
-            <ProtectedRoute>
-              <StudentPortal />
-            </ProtectedRoute>
-          } />
+              <Route path="/dashboard" element={
+                <ProtectedRoute>
+                  <StudentPortal />
+                </ProtectedRoute>
+              } />
 
-          <Route path="/jobs/:id" element={
-            <ProtectedRoute>
-              <JobDetails />
-            </ProtectedRoute>
-          } />
+              <Route path="/jobs/:id" element={
+                <ProtectedRoute>
+                  <JobDetails />
+                </ProtectedRoute>
+              } />
 
-          <Route path="/" element={<RootRedirect />} />
-        </Routes>
-      </AuthProvider>
+              <Route path="/" element={<RootRedirect />} />
+            </Routes>
+          </div>
+          <Footer />
+        </AuthProvider>
+      </div>
     </Router>
   );
 }
