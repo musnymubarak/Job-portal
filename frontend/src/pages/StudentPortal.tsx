@@ -1,18 +1,26 @@
-import { useState, useEffect, useRef, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { getJobs, getMyApplications, type Job, type Application } from '../api/jobs';
 import { uploadCV, updateProfile, changePassword } from '../api/users';
-import { getNotifications, markAsRead, markAllAsRead, type Notification } from '../api/notifications';
-import { LogOut, Upload, User as UserIcon, Briefcase, FileText, CheckCircle, Filter, Bell } from 'lucide-react';
+import { User as UserIcon, FileText, CheckCircle, Filter, Upload, LogOut } from 'lucide-react';
 import toast from 'react-hot-toast';
-import ThemeToggle from '../components/ThemeToggle';
 import { useWebSocket } from '../context/WebSocketContext';
+import StudentNavbar from '../components/StudentNavbar';
 
 const StudentPortal = () => {
-    const { user, logout, setUser } = useAuth();
+    const { user, setUser } = useAuth();
     const { lastEvent } = useWebSocket();
+    const location = useLocation();
     const [activeTab, setActiveTab] = useState<'jobs' | 'applications' | 'profile'>('jobs');
+
+    // Handle Hash Navigation (e.g. from external link to #profile)
+    useEffect(() => {
+        if (location.hash === '#profile') {
+            setActiveTab('profile');
+        }
+    }, [location]);
+    // Mobile menu state moved to Navbar
 
     // WebSocket Listener: Auto-refresh data on events
     useEffect(() => {
@@ -21,16 +29,14 @@ const StudentPortal = () => {
         if (lastEvent.event === 'job_posted') {
             fetchJobs();
             // Optional: show a dot on jobs tab?
+            // Optional: show a dot on jobs tab?
         } else if (lastEvent.event === 'status_updated') {
             fetchApplications();
-            fetchNotifications();
+            // Notifications handled in Navbar
         }
     }, [lastEvent]);
 
-    // Notifications State
-    const [notifications, setNotifications] = useState<Notification[]>([]);
-    const [showNotifications, setShowNotifications] = useState(false);
-    const notificationRef = useRef<HTMLDivElement>(null);
+    // Notifications state moved to Navbar
 
     // Jobs State
     const [jobs, setJobs] = useState<Job[]>([]);
@@ -44,6 +50,10 @@ const StudentPortal = () => {
         application_status: ''
     });
 
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const JOBS_PER_PAGE = 6;
+
     // Applications State
     const [myApplications, setMyApplications] = useState<Application[]>([]);
 
@@ -56,51 +66,19 @@ const StudentPortal = () => {
     useEffect(() => {
         if (user) {
             setProfileData({ full_name: user.full_name || '', email: user.email || '' });
-            fetchNotifications();
+            // Notifications fetched in Navbar
             fetchApplications();
         }
     }, [user]);
 
-    // Poll for notifications
-    useEffect(() => {
-        const interval = setInterval(fetchNotifications, 30000);
-        return () => clearInterval(interval);
-    }, []);
 
-    // Close notifications when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
-                setShowNotifications(false);
-            }
-        };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
-
-    const fetchNotifications = async () => {
-        try {
-            const data = await getNotifications();
-            setNotifications(data);
-        } catch (error) {
-            console.error("Failed to fetch notifications", error);
-        }
-    };
-
-    const handleMarkRead = async (id: number) => {
-        try {
-            await markAsRead(id);
-            setNotifications(notifications.map(n => n.id === id ? { ...n, is_read: true } : n));
-        } catch (error) {
-            console.error(error);
-        }
-    };
-
-    const unreadCount = notifications.filter(n => !n.is_read).length;
 
     // ... (rest of effects) ...
     useEffect(() => {
-        if (activeTab === 'jobs') fetchJobs();
+        if (activeTab === 'jobs') {
+            fetchJobs();
+            setCurrentPage(1); // Reset page on filter/tab change
+        }
         if (activeTab === 'applications') fetchApplications();
     }, [activeTab, filters]);
 
@@ -194,104 +172,29 @@ const StudentPortal = () => {
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200 flex flex-col">
             {/* Navbar */}
-            <nav className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-100 dark:border-gray-700 z-20 sticky top-0 transition-colors duration-200">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between h-16 items-center">
-                        <div className="flex items-center">
-                            <Briefcase className="h-6 w-6 text-indigo-600 dark:text-indigo-400 mr-2" />
-                            <span className="font-bold text-xl text-gray-900 dark:text-white">InternHub</span>
-                        </div>
-                        <div className="flex items-center space-x-4">
-                            <ThemeToggle />
-                            {/* Notifications */}
-                            <div className="relative" ref={notificationRef}>
-                                <button
-                                    onClick={() => setShowNotifications(!showNotifications)}
-                                    className="p-2 text-gray-400 hover:text-indigo-600 relative transition-colors"
-                                >
-                                    <Bell size={20} />
-                                    {unreadCount > 0 && (
-                                        <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full animate-pulse"></span>
-                                    )}
-                                </button>
-
-                                {showNotifications && (
-                                    <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden z-50">
-                                        <div className="px-4 py-3 border-b border-gray-50 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-700/50">
-                                            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Notifications</h3>
-                                            {unreadCount > 0 && (
-                                                <button
-                                                    onClick={() => { markAllAsRead(); setNotifications(notifications.map(n => ({ ...n, is_read: true }))); }}
-                                                    className="text-xs text-indigo-600 hover:text-indigo-800"
-                                                >
-                                                    Mark all read
-                                                </button>
-                                            )}
-                                        </div>
-                                        <div className="max-h-96 overflow-y-auto">
-                                            {notifications.length === 0 ? (
-                                                <div className="p-8 text-center text-gray-400 text-sm">
-                                                    No notifications
-                                                </div>
-                                            ) : (
-                                                notifications.map(notif => (
-                                                    <div
-                                                        key={notif.id}
-                                                        onClick={() => !notif.is_read && handleMarkRead(notif.id)}
-                                                        className={`p-4 border-b border-gray-50 dark:border-gray-700 cursor-pointer transition-colors ${notif.is_read ? 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700' : 'bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/40'}`}
-                                                    >
-                                                        <p className={`text-sm ${notif.is_read ? 'text-gray-600 dark:text-gray-400' : 'text-gray-900 dark:text-white font-medium'}`}>
-                                                            {notif.message}
-                                                        </p>
-                                                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                                                            {new Date(notif.created_at).toLocaleDateString()} {new Date(notif.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                        </p>
-                                                    </div>
-                                                ))
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
-                            <button
-                                onClick={() => setActiveTab('profile')}
-                                className="text-gray-600 hover:text-indigo-600 font-medium text-sm flex items-center"
-                            >
-                                <UserIcon size={16} className="mr-1" /> Profile
-                            </button>
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                                STUDENT
-                            </span>
-                            <button onClick={logout} className="text-gray-400 hover:text-gray-600">
-                                <LogOut size={20} />
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </nav>
+            <StudentNavbar onTabChange={setActiveTab} />
 
             <div className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-                {/* Tabs */}
-                <div className="flex space-x-4 mb-8 border-b border-gray-200">
+                {/* Tabs - Scrollable on mobile */}
+                <div className="flex space-x-4 mb-8 border-b border-gray-200 overflow-x-auto scrollbar-hide">
                     <button
                         onClick={() => setActiveTab('jobs')}
-                        className={`pb-4 px-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'jobs' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+                        className={`pb-4 px-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'jobs' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'
                             }`}
                     >
                         Open Positions
                     </button>
                     <button
                         onClick={() => setActiveTab('applications')}
-                        className={`pb-4 px-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'applications' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+                        className={`pb-4 px-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'applications' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'
                             }`}
                     >
                         My Applications
                     </button>
                     <button
                         onClick={() => setActiveTab('profile')}
-                        className={`pb-4 px-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'profile' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+                        className={`pb-4 px-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'profile' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'
                             }`}
                     >
                         My Profile
@@ -352,8 +255,8 @@ const StudentPortal = () => {
                         </div>
 
                         {/* Job List */}
-                        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                            {jobs.map(job => (
+                        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                            {jobs.slice((currentPage - 1) * JOBS_PER_PAGE, currentPage * JOBS_PER_PAGE).map(job => (
                                 <div key={job.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 hover:shadow-md transition-shadow flex flex-col">
                                     <div className="flex justify-between items-start mb-4">
                                         <div>
@@ -387,38 +290,112 @@ const StudentPortal = () => {
                                 </div>
                             )}
                         </div>
+
+                        {/* Pagination Controls */}
+                        {jobs.length > JOBS_PER_PAGE && (
+                            <div className="flex justify-center items-center space-x-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+                                <button
+                                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                    disabled={currentPage === 1}
+                                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    Previous
+                                </button>
+                                <span className="text-sm text-gray-700 dark:text-gray-300">
+                                    Page {currentPage} of {Math.ceil(jobs.length / JOBS_PER_PAGE)}
+                                </span>
+                                <button
+                                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(jobs.length / JOBS_PER_PAGE)))}
+                                    disabled={currentPage === Math.ceil(jobs.length / JOBS_PER_PAGE)}
+                                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
 
                 {activeTab === 'applications' && (
                     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50 dark:bg-gray-700/50">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Job ID</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Applied On</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Result</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                {myApplications.map((app) => (
-                                    <tr key={app.id}>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">#{app.job_id}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{new Date(app.created_at).toLocaleDateString()}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800 uppercase">
-                                                {app.status}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                            {app.status === 'accepted' ? '🎉 Accepted' : 'Pending Review'}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                        {myApplications.length === 0 && <div className="p-8 text-center text-gray-500">You haven't applied to any jobs yet.</div>}
+                        {myApplications.length === 0 ? (
+                            <div className="text-center py-12 text-gray-500">
+                                You haven't applied to any jobs yet.
+                            </div>
+                        ) : (
+                            <>
+                                {/* Desktop Table View */}
+                                <div className="hidden md:block overflow-x-auto">
+                                    <table className="min-w-full divide-y divide-gray-200">
+                                        <thead className="bg-gray-50 dark:bg-gray-700/50">
+                                            <tr>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Job Title</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Applied On</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Score</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Feedback</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                            {myApplications.map((app) => (
+                                                <tr key={app.id}>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <div className="text-sm font-medium text-gray-900 dark:text-white">{app.job?.title}</div>
+                                                        <div className="text-sm text-gray-500 dark:text-gray-400">{app.job?.department}</div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                                        {new Date(app.created_at).toLocaleDateString()}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                                        <span className="font-bold text-indigo-600">{app.ats_score}%</span>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full uppercase ${app.status === 'accepted' ? 'bg-green-100 text-green-800' :
+                                                            app.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                                                'bg-blue-100 text-blue-800'
+                                                            }`}>
+                                                            {app.status}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 max-w-xs truncate">
+                                                        {app.ai_feedback || '-'}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {/* Mobile Card View */}
+                                <div className="md:hidden space-y-4">
+                                    {myApplications.map((app) => (
+                                        <div key={app.id} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <div>
+                                                    <h3 className="font-medium text-gray-900 dark:text-white">{app.job?.title}</h3>
+                                                    <p className="text-xs text-gray-500">{app.job?.department}</p>
+                                                </div>
+                                                <span className={`px-2 py-0.5 text-xs font-semibold rounded-full uppercase ${app.status === 'accepted' ? 'bg-green-100 text-green-800' :
+                                                    app.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                                        'bg-blue-100 text-blue-800'
+                                                    }`}>
+                                                    {app.status}
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between items-center text-sm text-gray-500 dark:text-gray-400 mb-2">
+                                                <span>Applied: {new Date(app.created_at).toLocaleDateString()}</span>
+                                                <span className="font-bold text-indigo-600">Score: {app.ats_score}%</span>
+                                            </div>
+                                            {app.ai_feedback && (
+                                                <div className="text-xs text-gray-500 bg-gray-50 dark:bg-gray-700/50 p-2 rounded">
+                                                    Feedback: {app.ai_feedback}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        )}
                     </div>
                 )}
 

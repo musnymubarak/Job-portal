@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { createJob, updateJob, getAdminApplications, getJobs, type Job, type JobCreate, type Application } from '../api/jobs';
 import { updateApplicationStatus } from '../api/applications';
 import { updateProfile, changePassword } from '../api/users';
-import { LogOut, Plus, Briefcase, FileText, BarChart2, User as UserIcon, Filter, Lock, Check, X, Edit, Loader } from 'lucide-react';
+import { LogOut, Plus, Briefcase, FileText, BarChart2, User as UserIcon, Filter, Lock, Check, X, Edit, Loader, Menu } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ThemeToggle from '../components/ThemeToggle';
 import { useWebSocket } from '../context';
@@ -19,7 +19,12 @@ const AdminPortal = () => {
     const [selectedJob, setSelectedJob] = useState<Job | null>(null);
     const [applications, setApplications] = useState<Application[]>([]);
     const [loadingApps, setLoadingApps] = useState(false);
+    const [appPage, setAppPage] = useState(1);
+    const APPS_PER_PAGE = 6;
+
+    // Filters State
     const [downloadingCvId, setDownloadingCvId] = useState<number | null>(null);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     // ... (skip down to handleViewCV)
 
@@ -135,6 +140,7 @@ const AdminPortal = () => {
 
             const data = await getAdminApplications(jobId, appFilters);
             setApplications(data);
+            setAppPage(1); // Reset to first page on new fetch
         } catch (error) {
             console.error("Failed to load applications", error);
             toast.error("Failed to load applications");
@@ -264,29 +270,150 @@ const AdminPortal = () => {
                     <div className="flex justify-between h-16 items-center">
                         <div className="flex items-center">
                             <Briefcase className="h-6 w-6 text-indigo-600 dark:text-indigo-400 mr-2" />
-                            <span className="font-bold text-xl text-gray-900 dark:text-white">AdminPortal</span>
+                            <span className="font-bold text-xl text-gray-900 dark:text-white">AdminHub</span>
                         </div>
-                        <div className="flex items-center space-x-4">
+
+                        {/* Desktop Menu */}
+                        <div className="hidden md:flex items-center space-x-4">
                             <ThemeToggle />
-                            <span className="text-sm text-gray-600">{user?.email}</span>
+                            <span className="text-sm text-gray-600 dark:text-gray-300">{user?.email}</span>
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
                                 ADMIN
                             </span>
-                            <button onClick={logout} className="p-2 text-gray-400 hover:text-gray-600">
+                            <button onClick={logout} className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                                 <LogOut size={20} />
+                            </button>
+                        </div>
+
+                        {/* Mobile Menu Button */}
+                        <div className="flex md:hidden items-center space-x-2">
+                            <button
+                                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                                className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
+                            >
+                                {isMenuOpen ? (
+                                    <X className="block h-6 w-6" />
+                                ) : (
+                                    <Menu className="block h-6 w-6" />
+                                )}
                             </button>
                         </div>
                     </div>
                 </div>
+
+                {/* Mobile Menu Dropdown */}
+                {isMenuOpen && (
+                    <div className="md:hidden bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700">
+                        <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                            <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700 mb-2">
+                                Signed in as <span className="font-medium text-gray-900 dark:text-white">{user?.email}</span>
+                            </div>
+
+                            <div className="px-3 py-2 flex items-center justify-between">
+                                <span className="text-base font-medium text-gray-700 dark:text-gray-200">Dark Mode</span>
+                                <ThemeToggle />
+                            </div>
+
+                            <button
+                                onClick={() => { setActiveTab('dashboard'); setIsMenuOpen(false); }}
+                                className={`block w-full text-left px-3 py-2 rounded-md text-base font-medium ${activeTab === 'dashboard'
+                                    ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-300'
+                                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                    }`}
+                            >
+                                Dashboard
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setActiveTab('post-job');
+                                    setIsMenuOpen(false);
+                                }}
+                                className={`block w-full text-left px-3 py-2 rounded-md text-base font-medium ${activeTab === 'post-job'
+                                    ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-300'
+                                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                    }`}
+                            >
+                                Post New Job
+                            </button>
+                            <button
+                                onClick={() => { setActiveTab('profile'); setIsMenuOpen(false); }}
+                                className={`block w-full text-left px-3 py-2 rounded-md text-base font-medium ${activeTab === 'profile'
+                                    ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-300'
+                                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                    }`}
+                            >
+                                Profile
+                            </button>
+
+                            <button
+                                onClick={logout}
+                                className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                            >
+                                Sign out
+                            </button>
+                        </div>
+                    </div>
+                )}
             </nav>
 
-            <div className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex gap-6 overflow-hidden h-[calc(100vh-64px)]">
+            <div className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col md:flex-row gap-6 overflow-hidden h-[calc(100vh-64px)]">
 
-                {/* SIDERBAR / MENU */}
-                <aside className="w-64 flex-shrink-0 flex flex-col gap-4">
+                {/* Mobile Search Bar (Outside Menu) */}
+                {activeTab === 'dashboard' && (
+                    <div className="md:hidden mb-4 relative z-10">
+                        <div className="relative">
+                            <input
+                                type="text"
+                                placeholder="Search & Filter Jobs..."
+                                className="w-full pl-10 pr-4 py-3 shadow-sm border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-800 dark:text-white text-base"
+                                value={jobSearch}
+                                onChange={(e) => setJobSearch(e.target.value)}
+                            />
+                            <div className="absolute left-3.5 top-3.5 pointer-events-none text-gray-400">
+                                <Filter size={20} />
+                            </div>
+                        </div>
+                        {/* Dropdown Results for Mobile Search */}
+                        {jobSearch && (
+                            <div className="absolute top-full left-0 right-0 mt-2 max-h-60 overflow-y-auto border border-gray-100 dark:border-gray-700 rounded-xl shadow-lg bg-white dark:bg-gray-800 z-50">
+                                <button
+                                    onClick={() => { setSelectedJob(null); setJobSearch(''); }}
+                                    className="block w-full text-left px-4 py-3 text-sm font-medium text-indigo-600 dark:text-indigo-400 border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
+                                >
+                                    View All Jobs
+                                </button>
+                                {filteredJobs.map(job => (
+                                    <button
+                                        key={job.id}
+                                        onClick={() => { setSelectedJob(job); setJobSearch(''); }} // Clear search after selection to hide dropdown
+                                        className="block w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-50 dark:border-gray-700 last:border-0"
+                                    >
+                                        {job.title}
+                                    </button>
+                                ))}
+                                {filteredJobs.length === 0 && <div className="p-4 text-center text-sm text-gray-400">No matching jobs</div>}
+                            </div>
+                        )}
+                        {/* Selected Filter Badge */}
+                        {selectedJob && !jobSearch && (
+                            <div className="mt-2 flex items-center justify-between bg-indigo-50 dark:bg-indigo-900/30 px-3 py-2 rounded-lg border border-indigo-100 dark:border-indigo-800">
+                                <span className="text-sm font-medium text-indigo-700 dark:text-indigo-300 truncate">
+                                    Filter: {selectedJob.title}
+                                </span>
+                                <button onClick={() => setSelectedJob(null)} className="text-indigo-500 hover:text-indigo-700">
+                                    <X size={16} />
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* SIDEBAR (Desktop Only) */}
+                <aside className="hidden md:flex w-64 flex-shrink-0 flex-col gap-4">
+
                     <div className="flex flex-col space-y-1">
                         <button
-                            onClick={() => setActiveTab('dashboard')}
+                            onClick={() => { setActiveTab('dashboard'); }}
                             className={`flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'dashboard'
                                 ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300'
                                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
@@ -312,7 +439,7 @@ const AdminPortal = () => {
                             <Plus size={18} className="mr-3" /> Post New Job
                         </button>
                         <button
-                            onClick={() => setActiveTab('profile')}
+                            onClick={() => { setActiveTab('profile'); }}
                             className={`flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'profile'
                                 ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300'
                                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
@@ -324,7 +451,7 @@ const AdminPortal = () => {
 
                     {/* Job List for Filtering (Only show in dashboard) */}
                     {activeTab === 'dashboard' && (
-                        <div className="flex-1 flex flex-col bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+                        <div className="flex-1 flex flex-col bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden min-h-[300px]">
                             <div className="p-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
                                 <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Filter by Job</h3>
                                 <div className="relative">
@@ -343,7 +470,7 @@ const AdminPortal = () => {
                             <div className="flex-1 overflow-y-auto">
                                 {!jobSearch && (
                                     <button
-                                        onClick={() => setSelectedJob(null)}
+                                        onClick={() => { setSelectedJob(null); }}
                                         className={`w-full text-left px-4 py-3 border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${selectedJob === null ? 'bg-indigo-50 dark:bg-indigo-900/20 border-l-4 border-l-indigo-600 dark:border-l-indigo-500' : 'border-l-4 border-l-transparent'}`}
                                     >
                                         <p className={`text-sm font-medium ${selectedJob === null ? 'text-indigo-900 dark:text-indigo-300' : 'text-gray-900 dark:text-white'}`}>
@@ -357,7 +484,7 @@ const AdminPortal = () => {
                                 {filteredJobs.map(job => (
                                     <button
                                         key={job.id}
-                                        onClick={() => setSelectedJob(job)}
+                                        onClick={() => { setSelectedJob(job); }}
                                         className={`w-full text-left px-4 py-3 border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${selectedJob?.id === job.id ? 'bg-indigo-50 dark:bg-indigo-900/20 border-l-4 border-l-indigo-600 dark:border-l-indigo-500' : 'border-l-4 border-l-transparent'}`}
                                     >
                                         <p className={`text-sm font-medium ${selectedJob?.id === job.id ? 'text-indigo-900 dark:text-indigo-300' : 'text-gray-900 dark:text-white'}`}>
@@ -734,93 +861,196 @@ const AdminPortal = () => {
                                         <p>No applications found.</p>
                                     </div>
                                 ) : (
-                                    <table className="min-w-full divide-y divide-gray-200">
-                                        <thead className="bg-gray-50 dark:bg-gray-700/50 sticky top-0 z-10">
-                                            <tr>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Candidate</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Applied On</th>
-                                                {!selectedJob && (
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Job Title</th>
-                                                )}
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">ATS Score</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                            {applications.map((app) => (
-                                                <tr key={app.id} className="hover:bg-gray-50 transition-colors">
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <div className="flex items-center">
-                                                            <div className="flex-shrink-0 h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold">
-                                                                {app.student?.full_name?.charAt(0) || 'U'}
-                                                            </div>
-                                                            <div className="ml-4">
-                                                                <div className="text-sm font-medium text-gray-900 dark:text-white">
-                                                                    {app.student?.full_name || `User #${app.student_id}`}
+                                    <>
+                                        {/* Responsive Table/Card Switch */}
+
+                                        {/* Desktop Table View */}
+                                        <div className="hidden md:block overflow-x-auto">
+                                            <table className="min-w-full divide-y divide-gray-200">
+                                                <thead className="bg-gray-50 dark:bg-gray-700/50">
+                                                    <tr>
+                                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Candidate</th>
+                                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Applied On</th>
+                                                        {!selectedJob && (
+                                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Job Title</th>
+                                                        )}
+                                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">ATS Score</th>
+                                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                                    {applications.slice((appPage - 1) * APPS_PER_PAGE, appPage * APPS_PER_PAGE).map((app) => (
+                                                        <tr key={app.id} className="hover:bg-gray-50 transition-colors">
+                                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                                <div className="flex items-center">
+                                                                    <div className="flex-shrink-0 h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold">
+                                                                        {app.student?.full_name?.charAt(0) || 'U'}
+                                                                    </div>
+                                                                    <div className="ml-4">
+                                                                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                                                                            {app.student?.full_name || `User #${app.student_id}`}
+                                                                        </div>
+                                                                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                                                                            <button
+                                                                                onClick={() => handleViewCV(app.student_id)}
+                                                                                disabled={downloadingCvId === app.student_id}
+                                                                                className="flex items-center hover:text-indigo-600 disabled:opacity-50"
+                                                                            >
+                                                                                {downloadingCvId === app.student_id ? (
+                                                                                    <Loader size={12} className="mr-1 animate-spin" />
+                                                                                ) : (
+                                                                                    <FileText size={12} className="mr-1" />
+                                                                                )}
+                                                                                View CV
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
                                                                 </div>
-                                                                <div className="text-sm text-gray-500 dark:text-gray-400">
-                                                                    <button
-                                                                        onClick={() => handleViewCV(app.student_id)}
-                                                                        disabled={downloadingCvId === app.student_id}
-                                                                        className="flex items-center hover:text-indigo-600 disabled:opacity-50"
-                                                                    >
-                                                                        {downloadingCvId === app.student_id ? (
-                                                                            <Loader size={12} className="mr-1 animate-spin" />
-                                                                        ) : (
-                                                                            <FileText size={12} className="mr-1" />
-                                                                        )}
-                                                                        View CV
-                                                                    </button>
-                                                                </div>
-                                                            </div>
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                                                {new Date(app.created_at).toLocaleDateString()}
+                                                            </td>
+                                                            {!selectedJob && (
+                                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300 font-medium">
+                                                                    {app.job?.title || `#${app.job_id}`}
+                                                                </td>
+                                                            )}
+                                                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                                <span className={getScoreColor(app.ats_score)}>{app.ats_score}%</span>
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full uppercase ${app.status === 'accepted' ? 'bg-green-100 text-green-800' :
+                                                                    app.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                                                        'bg-blue-100 text-blue-800'
+                                                                    }`}>
+                                                                    {app.status}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                                {app.status === 'applied' || app.status === 'reviewed' ? (
+                                                                    <div className="flex justify-end space-x-2">
+                                                                        <button
+                                                                            onClick={() => handleStatusUpdate(app.id, 'accepted')}
+                                                                            className="text-green-600 hover:text-green-900 bg-green-50 hover:bg-green-100 p-1 rounded transition-colors"
+                                                                            title="Accept Candidate"
+                                                                        >
+                                                                            <Check size={18} />
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => handleStatusUpdate(app.id, 'rejected')}
+                                                                            className="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 p-1 rounded transition-colors"
+                                                                            title="Reject Candidate"
+                                                                        >
+                                                                            <X size={18} />
+                                                                        </button>
+                                                                    </div>
+                                                                ) : (
+                                                                    <span className="text-gray-400 text-xs">-</span>
+                                                                )}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        {/* Mobile Card View */}
+                                        <div className="md:hidden space-y-4 p-4"> {/* Added p-4 for padding on mobile */}
+                                            {applications.slice((appPage - 1) * APPS_PER_PAGE, appPage * APPS_PER_PAGE).map((app) => (
+                                                <div key={app.id} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700">
+                                                    <div className="flex justify-between items-start mb-3">
+                                                        <div>
+                                                            <span className="text-xs font-semibold text-gray-500 uppercase">Candidate</span>
+                                                            <div className="font-medium text-gray-900 dark:text-white">{app.student?.full_name || `User #${app.student_id}`}</div>
+                                                            <div className="text-xs text-gray-500">{app.student?.email}</div>
                                                         </div>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                                        {new Date(app.created_at).toLocaleDateString()}
-                                                    </td>
+                                                        <div className="text-right">
+                                                            <span className="text-xs font-semibold text-gray-500 uppercase">Score</span>
+                                                            <div className={`font-bold ${getScoreColor(app.ats_score)}`}>{app.ats_score}%</div>
+                                                        </div>
+                                                    </div>
+
                                                     {!selectedJob && (
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300 font-medium">
-                                                            {app.job?.title || `#${app.job_id}`}
-                                                        </td>
+                                                        <div className="mb-3">
+                                                            <span className="text-xs font-semibold text-gray-500 uppercase">Job Title</span>
+                                                            <div className="font-medium text-gray-900 dark:text-white">{app.job?.title || `#${app.job_id}`}</div>
+                                                        </div>
                                                     )}
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                                        <span className={getScoreColor(app.ats_score)}>{app.ats_score}%</span>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
+
+                                                    <div className="flex justify-between items-center mb-4">
+                                                        <div className="text-sm text-gray-500">
+                                                            Applied: {new Date(app.created_at).toLocaleDateString()}
+                                                        </div>
                                                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full uppercase ${app.status === 'accepted' ? 'bg-green-100 text-green-800' :
                                                             app.status === 'rejected' ? 'bg-red-100 text-red-800' :
                                                                 'bg-blue-100 text-blue-800'
                                                             }`}>
                                                             {app.status}
                                                         </span>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                        {app.status === 'applied' || app.status === 'reviewed' ? (
-                                                            <div className="flex justify-end space-x-2">
-                                                                <button
-                                                                    onClick={() => handleStatusUpdate(app.id, 'accepted')}
-                                                                    className="text-green-600 hover:text-green-900 bg-green-50 hover:bg-green-100 p-1 rounded transition-colors"
-                                                                    title="Accept Candidate"
-                                                                >
-                                                                    <Check size={18} />
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => handleStatusUpdate(app.id, 'rejected')}
-                                                                    className="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 p-1 rounded transition-colors"
-                                                                    title="Reject Candidate"
-                                                                >
-                                                                    <X size={18} />
-                                                                </button>
-                                                            </div>
-                                                        ) : (
-                                                            <span className="text-gray-400 text-xs">-</span>
-                                                        )}
-                                                    </td>
-                                                </tr>
+                                                    </div> {/* Closing the div for applied date and status */}
+                                                    <div className="flex justify-between items-center pt-3 border-t border-gray-100 dark:border-gray-700 mt-3">
+                                                        <button
+                                                            onClick={() => handleViewCV(app.student_id)}
+                                                            disabled={downloadingCvId === app.student_id}
+                                                            className="flex items-center text-sm text-indigo-600 hover:text-indigo-800 font-medium disabled:opacity-50"
+                                                        >
+                                                            {downloadingCvId === app.student_id ? (
+                                                                <Loader size={12} className="mr-1 animate-spin" />
+                                                            ) : (
+                                                                <FileText size={12} className="mr-1" />
+                                                            )}
+                                                            View CV
+                                                        </button>
+
+                                                        <div className="flex space-x-2">
+                                                            {app.status === 'applied' || app.status === 'reviewed' ? (
+                                                                <>
+                                                                    <button
+                                                                        onClick={() => handleStatusUpdate(app.id, 'accepted')}
+                                                                        className="text-green-600 hover:text-green-900 bg-green-50 hover:bg-green-100 p-1 rounded transition-colors"
+                                                                        title="Accept Candidate"
+                                                                    >
+                                                                        <Check size={18} />
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => handleStatusUpdate(app.id, 'rejected')}
+                                                                        className="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 p-1 rounded transition-colors"
+                                                                        title="Reject Candidate"
+                                                                    >
+                                                                        <X size={18} />
+                                                                    </button>
+                                                                </>
+                                                            ) : null}
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             ))}
-                                        </tbody>
-                                    </table>
+                                        </div>
+
+                                        {/* Pagination Controls */}
+                                        {applications.length > APPS_PER_PAGE && (
+                                            <div className="flex justify-center items-center space-x-4 py-4 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
+                                                <button
+                                                    onClick={() => setAppPage(prev => Math.max(prev - 1, 1))}
+                                                    disabled={appPage === 1}
+                                                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    Previous
+                                                </button>
+                                                <span className="text-sm text-gray-700 dark:text-gray-300">
+                                                    Page {appPage} of {Math.ceil(applications.length / APPS_PER_PAGE)}
+                                                </span>
+                                                <button
+                                                    onClick={() => setAppPage(prev => Math.min(prev + 1, Math.ceil(applications.length / APPS_PER_PAGE)))}
+                                                    disabled={appPage === Math.ceil(applications.length / APPS_PER_PAGE)}
+                                                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    Next
+                                                </button>
+                                            </div>
+                                        )}
+                                    </>
                                 )}
                             </div>
                         </div>

@@ -33,6 +33,11 @@ export interface Application {
     status: string;
     ats_score: number;
     created_at: string;
+    ai_feedback?: string;
+    job?: {
+        title: string;
+        department: string;
+    };
 }
 
 export const getJobs = async (
