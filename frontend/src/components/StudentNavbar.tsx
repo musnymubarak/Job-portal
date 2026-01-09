@@ -12,7 +12,7 @@ interface StudentNavbarProps {
 
 const StudentNavbar = ({ onTabChange }: StudentNavbarProps) => {
     const { user, logout } = useAuth();
-    const { lastEvent } = useWebSocket();
+    const { lastEvent, isConnected } = useWebSocket();
     const navigate = useNavigate();
 
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -101,55 +101,62 @@ const StudentNavbar = ({ onTabChange }: StudentNavbarProps) => {
                             So I will respect that: Hidden on mobile, visible on desktop.
                          */}
 
-                        {/* Notifications - Always Visible */}
-                        <div className="relative" ref={notificationRef}>
-                            <button
-                                onClick={() => setShowNotifications(!showNotifications)}
-                                className="p-2 text-gray-400 hover:text-indigo-600 relative transition-colors"
-                            >
-                                <Bell size={20} />
-                                {unreadCount > 0 && (
-                                    <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full animate-pulse"></span>
-                                )}
-                            </button>
+                        {/* WS Status & Notifications */}
+                        <div className="flex items-center space-x-2">
+                            <div
+                                title={isConnected ? "Real-time updates active" : "Disconnected"}
+                                className={`w-2 h-2 rounded-full transition-colors duration-300 ${isConnected ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-red-500'}`}
+                            />
+                            <div className="relative" ref={notificationRef}>
+                                <button
+                                    onClick={() => setShowNotifications(!showNotifications)}
+                                    className="p-2 text-gray-400 hover:text-indigo-600 relative transition-colors"
+                                >
+                                    <Bell size={20} />
+                                    {unreadCount > 0 && (
+                                        <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full animate-pulse"></span>
+                                    )}
+                                </button>
 
-                            {showNotifications && (
-                                <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden z-50">
-                                    <div className="px-4 py-3 border-b border-gray-50 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-700/50">
-                                        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Notifications</h3>
-                                        {unreadCount > 0 && (
-                                            <button
-                                                onClick={() => { markAllAsRead(); setNotifications(notifications.map(n => ({ ...n, is_read: true }))); }}
-                                                className="text-xs text-indigo-600 hover:text-indigo-800"
-                                            >
-                                                Mark all read
-                                            </button>
-                                        )}
-                                    </div>
-                                    <div className="max-h-96 overflow-y-auto">
-                                        {notifications.length === 0 ? (
-                                            <div className="p-8 text-center text-gray-400 text-sm">
-                                                No notifications
-                                            </div>
-                                        ) : (
-                                            notifications.map(notif => (
-                                                <div
-                                                    key={notif.id}
-                                                    onClick={() => !notif.is_read && handleMarkRead(notif.id)}
-                                                    className={`p-4 border-b border-gray-50 dark:border-gray-700 cursor-pointer transition-colors ${notif.is_read ? 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700' : 'bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/40'}`}
+                                {showNotifications && (
+                                    <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden z-50">
+                                        <div className="px-4 py-3 border-b border-gray-50 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-700/50">
+                                            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Notifications</h3>
+                                            {unreadCount > 0 && (
+                                                <button
+                                                    onClick={() => { markAllAsRead(); setNotifications(notifications.map(n => ({ ...n, is_read: true }))); }}
+                                                    className="text-xs text-indigo-600 hover:text-indigo-800"
                                                 >
-                                                    <p className={`text-sm ${notif.is_read ? 'text-gray-600 dark:text-gray-400' : 'text-gray-900 dark:text-white font-medium'}`}>
-                                                        {notif.message}
-                                                    </p>
-                                                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                                                        {new Date(notif.created_at).toLocaleDateString()} {new Date(notif.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                    </p>
+                                                    Mark all read
+                                                </button>
+                                            )}
+                                        </div>
+                                        <div className="max-h-96 overflow-y-auto">
+                                            {notifications.length === 0 ? (
+                                                <div className="p-8 text-center text-gray-400 text-sm">
+                                                    No notifications
                                                 </div>
-                                            ))
-                                        )}
+                                            ) : (
+                                                notifications.map(notif => (
+                                                    <div
+                                                        key={notif.id}
+                                                        onClick={() => !notif.is_read && handleMarkRead(notif.id)}
+                                                        className={`p-4 border-b border-gray-50 dark:border-gray-700 cursor-pointer transition-colors ${notif.is_read ? 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700' : 'bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/40'}`}
+                                                    >
+                                                        <p className={`text-sm ${notif.is_read ? 'text-gray-600 dark:text-gray-400' : 'text-gray-900 dark:text-white font-medium'}`}>
+                                                            {notif.message}
+                                                        </p>
+                                                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                                                            {new Date(notif.created_at).toLocaleDateString()} {new Date(notif.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        </p>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
-                            )}
+                                )}
+                            </div>
+
                         </div>
 
                         {/* Desktop Only Items */}

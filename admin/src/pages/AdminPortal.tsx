@@ -11,7 +11,7 @@ import { getStudentCVUrl } from '../api/cv';
 
 const AdminPortal = () => {
     const { user, logout, setUser } = useAuth();
-    const { lastEvent } = useWebSocket();
+    const { lastEvent, isConnected } = useWebSocket();
     const [activeTab, setActiveTab] = useState<'dashboard' | 'post-job' | 'profile'>('dashboard');
 
     // Dashboard State
@@ -314,6 +314,10 @@ const AdminPortal = () => {
 
                         {/* Desktop Menu */}
                         <div className="hidden md:flex items-center space-x-4">
+                            <div
+                                title={isConnected ? "Real-time updates active" : "Disconnected"}
+                                className={`w-2 h-2 rounded-full transition-colors duration-300 ${isConnected ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-red-500'}`}
+                            />
                             <ThemeToggle />
                             <span className="text-sm text-gray-600 dark:text-gray-300">{user?.email}</span>
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
