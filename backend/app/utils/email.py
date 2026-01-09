@@ -26,15 +26,25 @@ def send_email(email_to: str, subject: str, html_content: str) -> None:
 
         msg.attach(MIMEText(html_content, "html"))
 
+        print(f"DEBUG: Connecting to SMTP {settings.SMTP_HOST}:{settings.SMTP_PORT}")
         with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+            print("DEBUG: SMTP Connected. Starting TLS...")
             server.starttls()
+            print("DEBUG: TLS Started. Logging in...")
             server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+            print("DEBUG: Logged in. Sending message...")
             server.send_message(msg)
+            print("DEBUG: Message sent via SMTP.")
         
         logger.info(f"Email sent to {email_to}")
+        print(f"DEBUG: Email sent to {email_to} successfully.")
 
     except Exception as e:
         logger.error(f"Failed to send email to {email_to}: {e}")
+        print(f"DEBUG: ERROR sending email: {e}")
+        # Print full traceback to help debug
+        import traceback
+        traceback.print_exc()
 
 def send_reset_password_email(email_to: str, email: str, token: str) -> None:
     subject = f"{settings.PROJECT_NAME} - Password Recovery"

@@ -45,19 +45,14 @@ def recover_password(email: str, background_tasks: BackgroundTasks, db: Session 
     db.add(reset_token)
     db.commit()
 
-    # Send Email (Directly for debugging, removed background task)
-    print(f"DEBUG: Attempting to send email to {email}")
-    print(f"DEBUG: Config - ENABLED={settings.EMAILS_ENABLED}, HOST={settings.SMTP_HOST}")
-    try:
-        send_reset_password_email(
-            email_to=user.email,
-            email=email,
-            token=raw_token
-        )
-        print("DEBUG: Email sent successfully.")
-    except Exception as e:
-        print(f"DEBUG: Email sending FAILED: {e}")
-        raise HTTPException(status_code=500, detail=f"Email send failed: {str(e)}")
+    # Send Email (Background Task to avoid blocking)
+    print(f"DEBUG: Queuing email task for {email}")
+    background_tasks.add_task(
+        send_reset_password_email,
+        email_to=user.email,
+        email=email,
+        token=raw_token
+    )
 
     return {"message": "If your email is registered, you will receive instructions to reset your password."}
 
