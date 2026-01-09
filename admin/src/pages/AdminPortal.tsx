@@ -54,11 +54,26 @@ const AdminPortal = () => {
 
     const handleViewCV = async (studentId: number) => {
         setDownloadingCvId(studentId);
+        // Open window immediately to bypass mobile popup blockers
+        const newWindow = window.open('', '_blank');
+
         try {
+            if (newWindow) {
+                newWindow.document.write('Loading CV...');
+            }
+
             const url = await getStudentCVUrl(studentId);
-            window.open(url, '_blank');
+
+            if (newWindow) {
+                newWindow.location.href = url;
+            } else {
+                // Fallback if popup was blocked despite our best efforts
+                window.location.href = url;
+            }
         } catch (error: any) {
             console.error("View CV Error:", error);
+            if (newWindow) newWindow.close();
+
             const msg = error.response?.data?.detail || "Failed to load CV (File might be missing)";
             toast.error(msg);
         } finally {
