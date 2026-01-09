@@ -136,7 +136,7 @@ def list_applications_admin(
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    query = db.query(Application).join(Job).options(joinedload(Application.student))
+    query = db.query(Application).join(Job).options(joinedload(Application.student), joinedload(Application.job))
     
     # Restrict to jobs posted by this admin
     query = query.filter(Job.admin_id == current_user.id)
@@ -168,7 +168,7 @@ def list_my_applications(
     """
     List my applications (Student).
     """
-    applications = db.query(Application).filter(Application.student_id == current_user.id).all()
+    applications = db.query(Application).options(joinedload(Application.job)).filter(Application.student_id == current_user.id).all()
     return applications
 
 @router.put("/{application_id}/status", response_model=application_schemas.Application)
@@ -205,10 +205,10 @@ def update_application_status(
     # Create Notification
     from app.models.notification import Notification
     
-    message = f"Your application for Job #{application.job_id} has been updated to: {status_update.status.value.upper()}."
+    message = f"Your application for {application.job.title} has been updated to: {status_update.status.value.upper()}."
     notification_type = "info"
     if status_update.status == ApplicationStatus.ACCEPTED:
-        message = f"Congratulations! Your application for Job #{application.job_id} has been ACCEPTED!"
+        message = f"Congratulations! Your application for {application.job.title} has been ACCEPTED!"
         notification_type = "success"
     elif status_update.status == ApplicationStatus.REJECTED:
         notification_type = "error" # or warning

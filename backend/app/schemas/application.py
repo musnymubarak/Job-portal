@@ -28,6 +28,8 @@ class ApplicationInDBBase(ApplicationBase):
         from_attributes = True
 
 from app.schemas.user import User
+from app.schemas.job import Job
 
 class Application(ApplicationInDBBase):
     student: Optional[User] = None
+    job: Optional[Job] = None
