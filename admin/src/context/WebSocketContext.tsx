@@ -28,7 +28,17 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             socketRef.current.close();
         }
 
-        const wsUrl = `ws://localhost:8000/api/v1/ws?token=${accessToken}`;
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const apiUrl = import.meta.env.VITE_API_URL || '';
+        let wsUrl = '';
+
+        if (apiUrl) {
+            wsUrl = apiUrl.replace(/^http/, 'ws') + '/api/v1/ws';
+        } else {
+            wsUrl = `${protocol}//${window.location.host}/api/v1/ws`;
+        }
+
+        wsUrl = `${wsUrl}?token=${accessToken}`;
         const ws = new WebSocket(wsUrl);
 
         ws.onopen = () => {

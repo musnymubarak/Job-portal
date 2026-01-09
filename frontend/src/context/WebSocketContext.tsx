@@ -29,7 +29,27 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             socketRef.current.close();
         }
 
-        const wsUrl = `ws://localhost:8000/api/v1/ws?token=${accessToken}`;
+        // Use relative path for WebSocket to work through Nginx (port 80)
+        // If in Dev (localhost:5173), Vite proxy handles /api, but WS needs full URL unless we use relative protocol?
+        // Actually, just pointing to current host works best for Docker.
+        // For local dev without docker, we might need localhost:8000.
+        // Let's use logic: if we are on port 80 (prod/docker), use ws://host/api...
+
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        // If API_URL is empty (production/docker), use window.location.host
+        // If API_URL is set (local dev), use that.
+        const apiUrl = import.meta.env.VITE_API_URL || '';
+        let wsUrl = '';
+
+        if (apiUrl) {
+            // If VITE_API_URL is http://localhost:8000, convert to ws://localhost:8000
+            wsUrl = apiUrl.replace(/^http/, 'ws') + '/api/v1/ws';
+        } else {
+            // Production / Docker: use current host (localhost:80)
+            wsUrl = `${protocol}//${window.location.host}/api/v1/ws`;
+        }
+
+        wsUrl = `${wsUrl}?token=${accessToken}`;
         const ws = new WebSocket(wsUrl);
 
         ws.onopen = () => {

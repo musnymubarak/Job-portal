@@ -24,12 +24,17 @@ RUN npm run build
 # ==========================================
 FROM python:3.10-slim
 
-# Install Nginx and Supervisor
-RUN apt-get update && apt-get install -y nginx supervisor && rm -rf /var/lib/apt/lists/*
+ENV PYTHONUNBUFFERED=1
+
+# Install Nginx, Supervisor, and Build Dependencies
+RUN apt-get update && apt-get install -y nginx supervisor build-essential libffi-dev && rm -rf /var/lib/apt/lists/*
 
 # Setup Backend
 WORKDIR /app
 COPY backend/requirements.txt .
+COPY backend/alembic.ini .
+COPY backend/alembic ./alembic
+
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy Backend Code

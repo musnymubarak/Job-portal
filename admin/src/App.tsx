@@ -24,7 +24,7 @@ const RootRedirect = () => {
 
 function App() {
   return (
-    <Router>
+    <Router basename="/admin">
       <div className="min-h-screen flex flex-col bg-gray-50">
         <Toaster position="top-right" />
         <AuthProvider>
