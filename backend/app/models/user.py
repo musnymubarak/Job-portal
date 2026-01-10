@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Boolean, Enum
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, backref
 from app.db.base_class import Base
 from app.models.project import Project
 from app.models.review import Review
@@ -27,4 +27,5 @@ class User(Base):
     activity_logs = relationship("ActivityLog", back_populates="user")
     notifications = relationship("Notification", back_populates="recipient")
     reset_tokens = relationship("PasswordResetToken", back_populates="user")
+    student_profile = relationship("StudentProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
 

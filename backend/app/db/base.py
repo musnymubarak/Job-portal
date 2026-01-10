@@ -5,3 +5,4 @@ from app.models.review import Review  # noqa
 from app.models.activity_log import ActivityLog  # noqa
 from app.models.job import Job  # noqa
 from app.models.application import Application  # noqa
+from app.models.student_profile import StudentProfile, PortfolioProject, StudentSkill  # noqa

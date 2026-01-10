@@ -3,7 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import { Link, useLocation } from 'react-router-dom';
 import { getJobs, getMyApplications, type Job, type Application } from '../api/jobs';
 import { uploadCV, updateProfile, changePassword } from '../api/users';
-import { User as UserIcon, FileText, CheckCircle, Filter, Upload, LogOut } from 'lucide-react';
+import { getStudentProfile, createStudentProfile, updateStudentProfile, type StudentProfile as IStudentProfile, type PortfolioProject, type StudentSkill } from '../api/studentProfile';
+import { User as UserIcon, FileText, CheckCircle, Filter, Upload, LogOut, Github, Linkedin, Globe, Plus, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useWebSocket } from '../context/WebSocketContext';
 import StudentNavbar from '../components/StudentNavbar';
@@ -66,10 +67,29 @@ const StudentPortal = () => {
     useEffect(() => {
         if (user) {
             setProfileData({ full_name: user.full_name || '', email: user.email || '' });
-            // Notifications fetched in Navbar
             fetchApplications();
+            fetchStudentProfile(); // Fetch enhanced profile
         }
     }, [user]);
+
+    // Enhanced Profile State
+    const [studentProfile, setStudentProfile] = useState<IStudentProfile>({
+        projects: [],
+        skills: []
+    });
+
+    const fetchStudentProfile = async () => {
+        try {
+            const data = await getStudentProfile();
+            setStudentProfile(data);
+        } catch (error: any) {
+            // If 404, it means profile doesn't exist yet, which is fine (we will create on save)
+            if (error?.response?.status !== 404) {
+                console.error("Error fetching profile", error);
+            }
+        }
+    };
+
 
 
 
@@ -150,6 +170,78 @@ const StudentPortal = () => {
         } catch (error) {
             console.error(error);
         }
+    };
+
+    const handleSaveEnhancedProfile = async (e: FormEvent) => {
+        e.preventDefault();
+
+        // logic: if id exists, update, else create
+        // But create endpoint also handles logic? Or we use create for first time
+        // Let's try update, if 404 then create? Or check ID
+
+        let promise;
+        if (studentProfile.id) {
+            promise = updateStudentProfile(studentProfile);
+        } else {
+            promise = createStudentProfile(studentProfile);
+        }
+
+        toast.promise(promise, {
+            loading: 'Saving Profile Details...',
+            success: 'Profile Details Saved!',
+            error: 'Failed to save details'
+        });
+
+        try {
+            const updated = await promise;
+            setStudentProfile(updated);
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    // Helper to update fields
+    const updateProfileField = (field: keyof IStudentProfile, value: any) => {
+        setStudentProfile(prev => ({ ...prev, [field]: value }));
+    };
+
+    // Helper for Projects
+    const addProject = () => {
+        setStudentProfile(prev => ({
+            ...prev,
+            projects: [...prev.projects, { title: '', description: '', link: '' }]
+        }));
+    };
+    const removeProject = (index: number) => {
+        setStudentProfile(prev => ({
+            ...prev,
+            projects: prev.projects.filter((_, i) => i !== index)
+        }));
+    };
+    const updateProject = (index: number, field: keyof PortfolioProject, value: string) => {
+        const newProjects = [...studentProfile.projects];
+        newProjects[index] = { ...newProjects[index], [field]: value };
+        setStudentProfile(prev => ({ ...prev, projects: newProjects }));
+    };
+
+    // Helper for Skills
+    const addSkill = () => {
+        setStudentProfile(prev => ({
+            ...prev,
+            skills: [...prev.skills, { name: '', level: 'beginner' }]
+        }));
+    };
+    const removeSkill = (index: number) => {
+        setStudentProfile(prev => ({
+            ...prev,
+            skills: prev.skills.filter((_, i) => i !== index)
+        }));
+    };
+    const updateSkill = (index: number, field: keyof StudentSkill, value: string) => {
+        const newSkills = [...studentProfile.skills];
+        // @ts-ignore
+        newSkills[index] = { ...newSkills[index], [field]: value };
+        setStudentProfile(prev => ({ ...prev, skills: newSkills }));
     };
 
     const handleChangePassword = async (e: FormEvent) => {
@@ -498,6 +590,131 @@ const StudentPortal = () => {
                                 </div>
                                 <button type="submit" className="bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-900">
                                     Change Password
+                                </button>
+                            </form>
+                        </div>
+
+                        {/* Enhanced Profile (GitHub, LinkedIn, Projects, Skills) */}
+                        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-8">
+                            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
+                                <Globe className="mr-2" /> Professional Details
+                            </h2>
+                            <form onSubmit={handleSaveEnhancedProfile} className="space-y-6">
+                                {/* Social Links */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center"><Github size={14} className="mr-1" /> GitHub URL</label>
+                                        <input
+                                            type="url"
+                                            className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
+                                            value={studentProfile.github_url || ''}
+                                            onChange={(e) => updateProfileField('github_url', e.target.value)}
+                                            placeholder="https://github.com/username"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center"><Linkedin size={14} className="mr-1" /> LinkedIn URL</label>
+                                        <input
+                                            type="url"
+                                            className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
+                                            value={studentProfile.linkedin_url || ''}
+                                            onChange={(e) => updateProfileField('linkedin_url', e.target.value)}
+                                            placeholder="https://linkedin.com/in/username"
+                                        />
+                                    </div>
+                                    <div className="md:col-span-2">
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center"><Globe size={14} className="mr-1" /> Portfolio Website</label>
+                                        <input
+                                            type="url"
+                                            className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
+                                            value={studentProfile.portfolio_url || ''}
+                                            onChange={(e) => updateProfileField('portfolio_url', e.target.value)}
+                                            placeholder="https://myportfolio.com"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Skills */}
+                                <div className="border-t border-gray-100 dark:border-gray-700 pt-6">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h3 className="text-lg font-medium text-gray-900 dark:text-white">Skills</h3>
+                                        <button type="button" onClick={addSkill} className="text-sm text-indigo-600 hover:text-indigo-800 flex items-center">
+                                            <Plus size={16} className="mr-1" /> Add Skill
+                                        </button>
+                                    </div>
+                                    <div className="space-y-3">
+                                        {studentProfile.skills.map((skill, index) => (
+                                            <div key={index} className="flex gap-2 items-start">
+                                                <input
+                                                    type="text"
+                                                    placeholder="Skill Name (e.g. React)"
+                                                    className="flex-1 min-w-0 block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
+                                                    value={skill.name}
+                                                    onChange={(e) => updateSkill(index, 'name', e.target.value)}
+                                                />
+                                                <select
+                                                    className="block w-32 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
+                                                    value={skill.level}
+                                                    onChange={(e) => updateSkill(index, 'level', e.target.value)}
+                                                >
+                                                    <option value="beginner">Beginner</option>
+                                                    <option value="intermediate">Intermediate</option>
+                                                    <option value="advanced">Advanced</option>
+                                                </select>
+                                                <button type="button" onClick={() => removeSkill(index)} className="p-2 text-red-500 hover:text-red-700">
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                        {studentProfile.skills.length === 0 && <p className="text-sm text-gray-500 italic">No skills added yet.</p>}
+                                    </div>
+                                </div>
+
+                                {/* Projects */}
+                                <div className="border-t border-gray-100 dark:border-gray-700 pt-6">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h3 className="text-lg font-medium text-gray-900 dark:text-white">Projects</h3>
+                                        <button type="button" onClick={addProject} className="text-sm text-indigo-600 hover:text-indigo-800 flex items-center">
+                                            <Plus size={16} className="mr-1" /> Add Project
+                                        </button>
+                                    </div>
+                                    <div className="space-y-6">
+                                        {studentProfile.projects.map((project, index) => (
+                                            <div key={index} className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg relative">
+                                                <button type="button" onClick={() => removeProject(index)} className="absolute top-2 right-2 text-red-500 hover:text-red-700">
+                                                    <Trash2 size={16} />
+                                                </button>
+                                                <div className="grid grid-cols-1 gap-3">
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Project Title"
+                                                        className="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
+                                                        value={project.title}
+                                                        onChange={(e) => updateProject(index, 'title', e.target.value)}
+                                                    />
+                                                    <textarea
+                                                        placeholder="Description"
+                                                        rows={2}
+                                                        className="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
+                                                        value={project.description || ''}
+                                                        onChange={(e) => updateProject(index, 'description', e.target.value)}
+                                                    />
+                                                    <input
+                                                        type="url"
+                                                        placeholder="Project Link (URL)"
+                                                        className="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-700 dark:text-white"
+                                                        value={project.link || ''}
+                                                        onChange={(e) => updateProject(index, 'link', e.target.value)}
+                                                    />
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {studentProfile.projects.length === 0 && <p className="text-sm text-gray-500 italic">No projects added yet.</p>}
+                                    </div>
+                                </div>
+
+                                <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 w-full md:w-auto">
+                                    Save Detailed Profile
                                 </button>
                             </form>
                         </div>
